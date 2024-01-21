@@ -9,5 +9,5 @@ class Email(BaseModel):
     sentTime: str
     pulledTime: str
     maskedSubject: str
-    maskedContent: str
+    maskedBody: str
 

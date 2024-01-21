@@ -44,4 +44,4 @@ def gmail_auth():
     return creds
 
 if __name__ == "__main__":
-    print("Run from app.py")
+    print("Run main.py")

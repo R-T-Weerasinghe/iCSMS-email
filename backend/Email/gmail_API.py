@@ -2,6 +2,10 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from auth import gmail_auth
 import base64
+import email
+from datetime import datetime
+from EmailType import Email
+
 creds = gmail_auth()
 # passing the arguemnts locally increase the speed. Since function will first look for the local variable and then the global variable.
 
@@ -21,11 +25,10 @@ def list_labels(creds=creds) -> None:
         return labels
 
     except HttpError as error:
-        # TODO(developer) - Handle errors from gmail API.
-        print(f"An error occurred: {error}")
+        raise error
 
 
-def get_message_ids(creds=creds) -> list | None:
+def get_email_ids(creds=creds) -> list | None:
     """
     List all message IDs in the user's Gmail account.
     """
@@ -33,7 +36,7 @@ def get_message_ids(creds=creds) -> list | None:
     try:
         # Call the Gmail API
         service = build("gmail", "v1", credentials=creds)
-        results = service.users().messages().list(userId="me", maxResults=500).execute()
+        results = service.users().messages().list(userId="me", maxResults=3).execute()
         messages = results.get("messages", [])
 
         if not messages:
@@ -45,35 +48,84 @@ def get_message_ids(creds=creds) -> list | None:
         return message_ids
     
     except HttpError as error:
-        # TODO(developer) - Handle errors from gmail API.
-        print(f"An error occurred: {error}")
+        raise error
 
-def get_email_body_by_id(id, creds=creds):
+
+def get_email_body_by_id(id, creds=creds) -> Email | None:
     """
-    Get the email body by ID.
+    Get the email body by ID v1.
     """
+    email: Email = dict()
     try:
         # Call the Gmail API
         service = build("gmail", "v1", credentials=creds)
         results = service.users().messages().get(userId="me", id=id).execute()
+        email["emailId"] = results["id"]
         for header in results["payload"]["headers"]:
             if header["name"] == "Subject":
-                subject = header["value"]
-            if header["name"] == "From":
-                sender = header["value"]
-        data = results["payload"]["parts"][0]["body"]["data"]
+                email["subject"] = header["value"]
+            elif header["name"] == "From":
+                email["senderEmail"] = header["value"]
+            elif header["name"] == "To":
+                email["receiverEmail"] = header["value"]
+            elif header["name"] == "Date":
+                email["sentTime"] = header["value"]
+
+        # TODO - Recheck these body parts
+        if "parts" in results["payload"]:
+            if results["payload"]["parts"][0]["mimeType"] == "text/plain":
+                data = results["payload"]["parts"][0]["body"]["data"]
+            else:
+                data = results["payload"]["parts"][0]["parts"][0]["body"]["data"]
+        else:
+            data = results["payload"]["body"]["data"]
         data = data.replace("-", "+").replace("_", "/")
         decoded_data = base64.b64decode(data)
-
-        # Now, the data obtained is in lxml. So, we will parse  
-        # it with BeautifulSoup library 
-        print(decoded_data)
+        email["body"] = decoded_data
+        # email["Body"] = decoded_data.decode("utf-8")
+        email["pulledTime"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        return email
 
     except HttpError as error:
-        # TODO(developer) - Handle errors from gmail API.
-        print(f"An error occurred: {error}")
+        raise error
     except KeyError as error:
-        print(f"Email message format not supported: key error {error}")
+        raise error
+
+# FIXME - This function is not used currently
+def getMessage(message_id, credentials=creds):
+    """
+    Get the email body by ID v2.
+    """
+    # get a message
+    try:
+        service = build('gmail', 'v1', credentials=credentials)
+
+        # Call the Gmail v1 API, retrieve message data.
+        message = service.users().messages().get(userId='me', id=message_id, format='raw').execute()
+
+        # Parse the raw message.
+        mime_msg = email.message_from_bytes(base64.urlsafe_b64decode(message['raw']))
+
+        # print(mime_msg['from'])
+        # print(mime_msg['to'])
+        # print(mime_msg['subject'])
+
+        # Find full message body
+        message_main_type = mime_msg.get_content_maintype()
+        if message_main_type == 'multipart':
+            msg = ""
+            for part in mime_msg.get_payload():
+                if part.get_content_maintype() == 'text':
+                    msg += part.get_payload() + '\n'
+            return '\n'.join(msg)
+        elif message_main_type == 'text':
+            return mime_msg.get_payload()
+
+        # Message snippet only.
+        # print('Message snippet: %s' % message['snippet'])
+    except HttpError as error:
+        # TODO(developer) - Handle errors from gmail API.
+        print(f'A message get error occurred: {error}')
 
 if __name__ == "__main__":
-    print("Not runnable")
+    print("Run main.py")
