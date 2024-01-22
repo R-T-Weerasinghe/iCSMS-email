@@ -3,9 +3,9 @@
 
 from fastapi import FastAPI, HTTPException
 
-from model import Email
+from DB.model import Email
 
-from database import (
+from DB.database import (
     fetch_one_email,
     fetch_all_ids,
     fetch_all_emails,
@@ -24,7 +24,7 @@ origins = [
     "http://localhost:3000",
 ]
 
-# what is a middleware? 
+# what is a middleware?
 # software that acts as a bridge between an operating system or database and applications, especially on a network.
 
 app.add_middleware(
@@ -35,19 +35,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 async def read_root():
     return {"ServerStatus": "Active"}
+
 
 @app.get("/api/email")
 async def get_email():
     response = await fetch_all_emails()
     return response
 
+
 @app.get("/api/email/id")
 async def get_email_ids():
     response = await fetch_all_ids()
     return response
+
 
 @app.get("/api/email/id/{emailId}", response_model=Email)
 async def get_email_by_title(emailId):
@@ -56,6 +60,7 @@ async def get_email_by_title(emailId):
         return response
     raise HTTPException(404, f"There is no email with the title {emailId}")
 
+
 @app.post("/api/email/", response_model=Email)
 async def post_email(email: Email):
     response = await create_email(email.model_dump())
@@ -63,12 +68,14 @@ async def post_email(email: Email):
         return response
     raise HTTPException(400, "Something went wrong")
 
+
 @app.put("/api/email/id/{emailId}/", response_model=Email)
 async def put_email(emailId: str, desc: str):
     response = await update_email(emailId, desc)
     if response:
         return response
     raise HTTPException(404, f"There is no email with the title {emailId}")
+
 
 @app.delete("/api/email/id/{emailId}")
 async def delete_email(emailId):
