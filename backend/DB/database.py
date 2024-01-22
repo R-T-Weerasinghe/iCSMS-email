@@ -3,7 +3,7 @@
 
 # mongoDB driver
 import motor.motor_asyncio
-from model import Email
+from DB.model import Email
 
 client = motor.motor_asyncio.AsyncIOMotorClient('mongodb://localhost:27017/')
 database = client.emailDB
