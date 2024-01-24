@@ -1,10 +1,10 @@
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from auth import gmail_auth
+from Email.auth import gmail_auth
 import base64
 import email
 from datetime import datetime
-from EmailType import Email
+from Email.TypeEmail import Email
 
 creds = gmail_auth()
 # passing the arguemnts locally increase the speed. Since function will first look for the local variable and then the global variable.
@@ -28,7 +28,7 @@ def list_labels(creds=creds) -> None:
         raise error
 
 
-def get_email_ids(creds=creds) -> list | None:
+def get_email_ids(*, maxResults, creds=creds) -> list | None:
     """
     List all message IDs in the user's Gmail account.
     """
@@ -36,7 +36,7 @@ def get_email_ids(creds=creds) -> list | None:
     try:
         # Call the Gmail API
         service = build("gmail", "v1", credentials=creds)
-        results = service.users().messages().list(userId="me", maxResults=3).execute()
+        results = service.users().messages().list(userId="me", maxResults=maxResults).execute()
         messages = results.get("messages", [])
 
         if not messages:
