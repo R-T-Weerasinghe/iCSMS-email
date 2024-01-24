@@ -1,5 +1,5 @@
 from threading import Timer
-from new_emails import identify_new_emails
+from backend.Email.new_emails import identify_new_emails
 
 # https://stackoverflow.com/questions/3393612/run-certain-code-every-n-seconds
 class RepeatedTimer(object):
