@@ -1,0 +1,41 @@
+* app starts by main.py
+* all calls from frontend are directed to modules in api/ directory
+* each module in api/ has 3 files (apart from __init__.py file which is used to make the respective directory a module)
+    * routes.py file handles the incoming sub-routes sent by the main.py file.
+
+        example: if main.py receives /api/summaries/view/2 , then main.py forwards it to api/summaries module but changes the forwarded URL to 
+        /view/2 (meaning /api/summaries part has been cut off). Then routes.py inside the summaries module must handle this particular route and 
+        'service' the request
+    
+    * For servicing the request, we have service.py under each module. It holds all the business functionalites (i.e. logic)
+        
+        example: when routes.py handling the request, it calls functions inside the service.py file.
+
+    * models.py file holds the validation models, type declarations kind of things that will be used in routes as well as services.py
+
+        example: models.py in summaries module will have a model which defines what are attributes of summaries. This model will be used to 
+        create the json response by routes.py file.
+
+* credentials/ holds the credentials used in external_services/ module (example: credentials.json)
+
+* database/ contains all the database calls and configurations
+
+    * db.py contains all the database calls
+    * mongodb.py contains the configurations for setting up and connecting mongodb
+
+* external_services/ holds api calls done by backend to external APIs like google cloud, vertex ai etc.
+
+    * authentication.py holds the authentication functions with the external APIs
+    * <api_service_name>.py file holds all the external API calls (example: vertex.py holds all the API calls to vertex)
+
+* tests/ holds tests for the backend
+
+* utils hold the system-wide used functions, constants, and configurations.
+
+    * constants.py - system-wide constants
+    * decorators.py - system-wide decorators
+    * exceptions.py - system-wide custom exceptions (that we designed)
+    * helpers.py - common functions to be used by several services
+    * logging_config.py - loggin configurations
+    * middleware.py
+    * config.py - for dependency injection
