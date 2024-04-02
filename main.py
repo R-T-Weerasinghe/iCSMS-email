@@ -1,33 +1,23 @@
+# main file that app starts with
+
+# This has to be outside because of the way the app is structured
+# Otherwise the relative imports within api/ and other modules won't work
+# This is because the app is started from the root directory and python path is set to the root directory
+# so all the imports can be called relative to the root directory
+
 from fastapi import FastAPI
-# Router imports
-from Routers.filter_router import filtering_router
-from Routers.summaries_router import summaries_router
-from Routers.analytics_router import analytics_router
-from Routers.settings_router import settings_router
-#
+from api.summary.routes import router as conversation_router
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
 
-# Router includes
-email_route_prefix = "/email"
-app.include_router(filtering_router, prefix=email_route_prefix)
-app.include_router(summaries_router, prefix=email_route_prefix)
-app.include_router(analytics_router, prefix=email_route_prefix)
-app.include_router(settings_router, prefix=email_route_prefix)
-#
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:4200"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
 
-
-@app.exception_handler(Exception)
-async def general_exception_logger(request, exc):
-
-    raise exc
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
+app.include_router(conversation_router, prefix="/email")
