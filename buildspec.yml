@@ -1,4 +1,4 @@
-version: 2.0
+version: 0.2
 phases:
   install:
     runtime-versions:
@@ -10,10 +10,11 @@ phases:
   build:
     commands:
       - echo "Zipping deployment package..."
-      - cd lib
-      - zip -r9 ../deployment-package.zip .
-      - cd ..
-      - zip -g deployment-package.zip .
+      - zip -r deployment-package.zip . -x "*.git*" -x "*.zip" -x "*__pycache__*"
+      # - cd lib
+      # - zip -r9 ../deployment-package.zip .
+      # - cd ..
+      # - zip -g deployment-package.zip .
       - echo "Zip completed on `date`"
 
   post_build:
