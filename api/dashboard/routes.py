@@ -1,0 +1,1 @@
+# Routes inside dashboard/ 
