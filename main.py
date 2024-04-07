@@ -8,7 +8,7 @@
 from fastapi import FastAPI
 from api.summary.routes import router as conversation_router
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi.responses import RedirectResponse
 
 app = FastAPI()
 
@@ -21,3 +21,7 @@ app.add_middleware(
 )
 
 app.include_router(conversation_router, prefix="/email")
+
+@app.get('/', response_class=RedirectResponse, include_in_schema=False)
+async def docs():
+    return RedirectResponse(url='/docs')
