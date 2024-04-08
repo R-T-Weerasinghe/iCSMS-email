@@ -1,0 +1,38 @@
+def individual_email_msg_serial(email_msg) -> dict:
+    return{
+        "_id": str(email_msg["_id"]),#_id is format which MongoDB uses to find a key to return the value
+        "id":email_msg["id"],
+        "recipient": email_msg["recipient"],
+        "sender": email_msg["sender"],
+        "thread_id": email_msg["thread_id"],
+        "criticality_category": email_msg["criticality_category"],
+        "org_sentiment_score": email_msg["org_sentiment_score"],
+        "our_sentiment_score": email_msg["our_sentiment_score"]
+
+        
+        
+        
+    }
+    
+def list_email_msg_serial(email_msgs) -> list:
+    return[individual_email_msg_serial(email_msg) for email_msg in email_msgs]
+
+
+def individual_trigger_serial(trigr) -> dict:
+    return{
+        "_id": str(trigr["_id"]),#_id is format which MongoDB uses to find a key to return the value
+        "trigger_id":trigr["trigger_id"],
+        "user_id":trigr["user_id"],
+        "accs_to_check_ss":trigr["accs_to_check_ss"],
+        "accs_to_check_criticality":trigr["accs_to_check_criticality"],
+        "ss_lower_bound":trigr["ss_lower_bound"],
+        "ss_upper_bound":trigr["ss_upper_bound"]
+        
+    }
+    
+def list_trigger_serial(trigrs) -> list:
+    return[individual_trigger_serial(trigr) for trigr in trigrs]
+
+
+
+        
