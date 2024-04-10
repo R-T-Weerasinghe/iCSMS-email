@@ -9,6 +9,7 @@ ecdsa==0.18.0
 fastapi==0.110.1
 idna==3.6
 jmespath==1.0.1
+mangum==0.17.0
 passlib==1.7.4
 pyasn1==0.6.0
 pycparser==2.22
