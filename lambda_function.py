@@ -1,4 +1,4 @@
+from mangum import Mangum
+from main import app
 
-
-def lambda_handler(event, context):
-    print("Hello World from Lambda!")
+handler = Mangum(app)
