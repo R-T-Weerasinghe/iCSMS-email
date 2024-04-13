@@ -18,5 +18,5 @@ urllib3==2.2.1
 
 
 
-pip install transformers torch -- data masking
+transformers torch -- data masking
 

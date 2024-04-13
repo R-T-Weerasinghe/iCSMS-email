@@ -35,4 +35,17 @@ def list_trigger_serial(trigrs) -> list:
 
 
 
+def individual_readingEmailAcc_serial(readingEmailAcc) -> dict:
+    return{
+
+        "id":readingEmailAcc["id"],
+        "address": readingEmailAcc["address"],
+        "nickname": readingEmailAcc["nickname"]
+        
+    }
+
+def list_readingEmailAcc_serial(readingEmailAccs) -> list:
+    return[individual_readingEmailAcc_serial(readingEmailAcc) for readingEmailAcc in readingEmailAccs]
+
+
         

@@ -1,6 +1,6 @@
 import asyncio
-from api.email_filtering_and_info_generation.routes.route import send_trig_event
-from api.email_filtering_and_info_generation.routes.route import get_triggers_array
+from api.email_filtering_and_info_generation.routes import send_trig_event
+from api.email_filtering_and_info_generation.routes import get_triggers_array
 new_email_notification_info_array=[]
 
 

@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from config.database import collection_name
 from models.todos import Todo
-from schema.schemas import list_serial
-from schema.schemas import individual_serial
+from api.email_filtering_and_info_generation.schemas import list_serial
+from api.email_filtering_and_info_generation.schemas import individual_serial
 from bson import ObjectId
 
 router2 = APIrouter()
