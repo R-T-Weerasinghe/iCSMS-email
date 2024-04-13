@@ -42,7 +42,6 @@ def scale_score(score: float, *, scale_type: str="linear") -> float:
 
     if scaled_score < -1:
         return -1
-    elif scaled_score > 1:
+    if scaled_score > 1:
         return 1
-    else:
-        return scaled_score
+    return scaled_score
