@@ -1,0 +1,45 @@
+name: Update Documentation
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  update_docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Generate OpenAPI JSON
+        run: |
+          uvicorn main:app --reload --host 0.0.0.0 --port 8000 & # Run FastAPI in the background
+          sleep 20 # Wait for FastAPI to start
+          curl -X GET "http://localhost:8000/openapi.json" -H  "accept: application/json" -o openapi.json
+
+      - name: Install Redoc CLI
+        run: |
+          npm install -g redoc-cli
+
+      - name: Generate Static HTML
+        run: |
+          redoc-cli bundle -o docs/index.html openapi.json
+
+      - name: Commit and Push Changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/index.html
+          git commit -m "Update documentation"
+          git push
