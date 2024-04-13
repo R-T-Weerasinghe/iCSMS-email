@@ -36,6 +36,9 @@ jobs:
         run: |
           redoc-cli bundle -o docs/index.html openapi.json
 
+      - name: Fetch Latest Changes
+        run: git fetch
+        
       - name: Commit Changes
         run: |
           git config --local user.email "action@github.com"
