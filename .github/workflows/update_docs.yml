@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+          python-version: "3.x"
 
       - name: Install Dependencies
         run: |
@@ -36,10 +36,21 @@ jobs:
         run: |
           redoc-cli bundle -o docs/index.html openapi.json
 
-      - name: Commit and Push Changes
+      - name: Commit Changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          git checkout docs # Switch to a new branch named 'docs'
           git add docs/index.html
           git commit -m "Update documentation"
-          git push
+          git push origin docs # Push changes to the 'docs' branch
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Create pull request for documentation updates"
+          title: "Update documentation"
+          body: "This pull request updates the documentation based on the latest API changes."
+          branch: "docs"
+          base: "dev"
