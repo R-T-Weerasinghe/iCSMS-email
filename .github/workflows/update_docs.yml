@@ -38,12 +38,17 @@ jobs:
 
       - name: Fetch Latest Changes
         run: git fetch
-        
-      - name: Commit Changes
+
+      - name: Git config
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git checkout docs # Switch to a new branch named 'docs'
+
+      - name: Switch to 'docs' Branch
+        run: git checkout --track origin/docs
+
+      - name: Commit Changes
+        run: |
           git add docs/index.html
           git commit -m "Update documentation"
           git push origin docs # Push changes to the 'docs' branch
