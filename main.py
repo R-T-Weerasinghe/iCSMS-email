@@ -5,6 +5,8 @@
 # This is because the app is started from the root directory and python path is set to the root directory
 # so all the imports can be called relative to the root directory
 import asyncio
+import threading
+import time
 
 from fastapi import FastAPI
 from api.summary.routes import router as conversation_router
@@ -12,10 +14,7 @@ from api.email_filtering_and_info_generation.routes import router as retrieval_a
 from api.settings.routes import router as settings_router
 from api.email_filtering_and_info_generation.read_emails import repeat_every_10mins
 from fastapi.middleware.cors import CORSMiddleware
-
-import threading
-import time
-
+from fastapi.responses import RedirectResponse
 
 app = FastAPI()
 
@@ -39,3 +38,6 @@ def run_in_thread():
 #threading.Thread(target=run_in_thread, args=(), daemon=True).start()
 
 
+@app.get('/', response_class=RedirectResponse, include_in_schema=False)
+async def docs():
+    return RedirectResponse(url='/docs')
