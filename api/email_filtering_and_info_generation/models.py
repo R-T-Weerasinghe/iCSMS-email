@@ -1,15 +1,17 @@
 from pydantic import BaseModel
 from typing import List
+from datetime import datetime
 
 class Email_msg(BaseModel):
     id:str
+    time:datetime
     recipient:str
     sender:str
     subject:str
     thread_id:str
     criticality_category:str
-    org_sentiment_score:int
-    our_sentiment_score:int
+    org_sentiment_score:float
+    our_sentiment_score:float
     topics: List[str]
     
 class Reading_email_acc(BaseModel):
