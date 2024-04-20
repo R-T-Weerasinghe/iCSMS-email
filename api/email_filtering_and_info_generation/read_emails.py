@@ -8,6 +8,7 @@ from api.email_filtering_and_info_generation.emailIntegration import integrateEm
 from api.email_filtering_and_info_generation.criticality_identification import identify_criticality
 from api.email_filtering_and_info_generation.notificationidentification import identify_notifcations
 from api.email_filtering_and_info_generation.data_masking import mask_email_messages
+from api.email_filtering_and_info_generation.sentiment_analysis import identify_sentiments
 from api.email_filtering_and_info_generation.topic_identification import identify_topics
 
 
@@ -73,7 +74,7 @@ async def read_all_new_emails(new_email_msg_array):
             print(time_difference_minutes)
 
             # checking whether the msg came in the last 10 mins
-            if abs(time_difference_minutes) <= 305:
+            if abs(time_difference_minutes) <= 1500:
                 # print("Subject: " + message.subject)
                 # print("To: " + message.recipient)
                 # print("From: " + message.sender)
@@ -110,6 +111,7 @@ async def repeat_every_10mins():
     #print(new_email_msg_array)
     mask_email_messages(new_email_msg_array)
     print(new_email_msg_array)
+    identify_sentiments(new_email_msg_array)
     identify_criticality(new_email_msg_array)
     #print(new_email_msg_array)
     #await identify_notifcations(new_email_msg_array)
@@ -128,6 +130,7 @@ async def repeat_every_10mins():
             await read_all_new_emails(new_email_msg_array)
             #print(new_email_msg_array)
             mask_email_messages(new_email_msg_array)
+            identify_sentiments(new_email_msg_array)
             identify_criticality(new_email_msg_array)
             #print(new_email_msg_array)
             await identify_notifcations(new_email_msg_array)

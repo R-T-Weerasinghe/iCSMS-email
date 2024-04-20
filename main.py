@@ -39,6 +39,6 @@ def run_in_thread():
     asyncio.run(repeat_every_10mins())
         
 # start the continous loop in a new thread
-# threading.Thread(target=run_in_thread, args=(), daemon=True).start()
+threading.Thread(target=run_in_thread, args=(), daemon=True).start()
 
 
