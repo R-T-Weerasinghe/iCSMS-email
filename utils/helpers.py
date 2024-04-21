@@ -1,7 +1,7 @@
 # System-wide helper functions and configurations
 import math
 
-def scale_score(score: float, *, scale_type: str="linear") -> float:
+def scale_score(score: float, *, scale_type: str="linear", precision: int=3) -> float:
     """
     Scales the given score based on the specified scale type.
     
@@ -10,7 +10,7 @@ def scale_score(score: float, *, scale_type: str="linear") -> float:
         scale_type (str, optional): The type of scaling to be applied. 
             Valid options are "linear", "standard", "aggressive", and "weak".
             Defaults to "linear".
-    
+        precision (int): Number of decimal places in score
     Returns:
         float: The scaled score.
     
@@ -44,4 +44,7 @@ def scale_score(score: float, *, scale_type: str="linear") -> float:
         return -1
     if scaled_score > 1:
         return 1
-    return scaled_score
+    
+    rounded_scaled_score = round(scale_score, precision) # type: ignore
+    return rounded_scaled_score
+

@@ -1,11 +1,19 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from api.email_filtering_and_info_generation.config import API_KEY  
 import google.generativeai as genai
+from dotenv import load_dotenv
 import os
 
-os.environ['GOOGLE_API_KEY'] = API_KEY
+# os.environ['GOOGLE_API_KEY'] = API_KEY
 
+# Load environment variables from .env file
+load_dotenv()
+# google_api_key = os.getenv("GOOGLE_API_KEY")
 
+# # Check if the value is not None before setting the environment variable
+# if google_api_key is not None:
+#     os.environ['GOOGLE_API_KEY'] = google_api_key
+    
 # Initialize Gemini LLM
 llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7)
 
