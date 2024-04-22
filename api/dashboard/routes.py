@@ -10,14 +10,16 @@ router = APIRouter()
 
 # send current reading emails to frontend   
 @router.get("/dashboard/get_current_overall_sentiments/{user_id}")
-async def get_current_overall_sentiments(user_id: int):
+async def get_current_overall_sentiments(user_id: int, intervalIndays: int):
  
     
    
     recipients = ["raninduharischandra12@gmail.com", "harischandrahbr.21@uom.lk"]
     
+    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    
     # Query MongoDB for documents matching recipients
-    query = {"recipient": {"$in": recipients}}
+    query = {"recipient": {"$in": recipients}, "time": {"$gte": n_days_ago}}
     results = collection_email_msgs.find(query, {"_id": 0, "our_sentiment_score": 1})
     
     # Extract our_sentiment_score values
@@ -57,16 +59,18 @@ async def get_current_overall_sentiments(user_id: int):
 
 
 @router.get("/dashboard/get_data_for_topic_cloud/{userId}")
-async def get_data_for_topic_cloud(userId: int):
+async def get_data_for_topic_cloud(userId: int, intervalIndays: int):
     
     # change this so to get the topics list from the DB
     topics = ['business','products', 'marketing issues', 'assignments', 'education', 'UN', 'AI']
+    
+    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
 
     # Initialize a dictionary to store topic frequencies
     topic_frequencies = {topic: 0 for topic in topics}
 
     # Query MongoDB to retrieve documents
-    cursor = collection_email_msgs.find()
+    cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago}})
 
     # Iterate over each document
     for document in cursor:
@@ -83,17 +87,51 @@ async def get_data_for_topic_cloud(userId: int):
 
     return JSONResponse(content=result)
 
+@router.get("/dashboard/get_data_for_word_cloud/{userId}")
+async def get_data_for_word_cloud(userId: int, intervalIndays: int):
+    
+    # change this so to get the topics list from the DB
+    topics = ['business','products', 'marketing issues', 'assignments', 'education', 'UN', 'AI']
+    
+    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+
+    # Initialize a dictionary to store topic frequencies
+    topic_frequencies = {topic: 0 for topic in topics}
+
+    # Query MongoDB to retrieve documents
+    cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago}})
+
+    # Iterate over each document
+    for document in cursor:
+        # Extract the topics array from the document
+        document_topics = document.get("topics", [])
+
+        # Count the frequency of each topic
+        for topic in document_topics:
+            if topic in topics:
+                topic_frequencies[topic] += 1
+    
+
+    
+    # Convert the dictionary to a list of dictionaries with topic and frequency
+    result = [{"topic": topic, "frequency": frequency, "color": generateRandomColor()} for topic, frequency in topic_frequencies.items()]
+
+    return JSONResponse(content=result)
+
  
 @router.get("/dashboard/get_data_for_stat_cards/{userId}")
-async def get_data_for_stat_cards(userId: int):
+async def get_data_for_stat_cards(userId: int, intervalIndays: int):
     
     recepient_emails = [{"id":1, "address":"harischandrahbr.21@uom.lk", "nickname":"haris1"},{"id":2, "address":"raninduharischandra12@gmail.com", "nickname":"ranindu"}]
     # {"id":3, "address":"'R-T-Weerasinghe/iCSMS-email' <iCSMS-email@noreply.github.com>", "nickname":"rav1"}
+    
+    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    
     evenCounter = 0
     result = []
     for recepient_email in recepient_emails:
         query = {"recipient": recepient_email["address"]}
-        cursor = collection_email_msgs.find(query)
+        cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago}}, query)
         
         if cursor:
             
@@ -132,9 +170,11 @@ async def get_data_for_stat_cards(userId: int):
 
 
 @router.get("/dashboard/get_data_for_sentiments_by_topic/{userId}")
-async def get_data_for_sentiments_by_topic(userId: int):
+async def get_data_for_sentiments_by_topic(userId: int, intervalIndays: int):
     
     topics = ['business','products', 'marketing issues', 'assignments', 'education', 'UN', 'AI']
+    
+    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
     
     # Initialize dictionary to store sentiment sums for each topic
     overall_sentiment_scores = []
@@ -145,7 +185,7 @@ async def get_data_for_sentiments_by_topic(userId: int):
     for topic in topics:
  
         # Query MongoDB for emails with the current topic
-        emails_with_topic = collection_email_msgs.find({"topics": {"$in": [topic]}})
+        emails_with_topic = collection_email_msgs.find({"time": {"$gte": n_days_ago}, "topics": {"$in": [topic]}})
 
         # find the total no of emails per each topic
         totalNoOFEmails = 0
@@ -161,10 +201,10 @@ async def get_data_for_sentiments_by_topic(userId: int):
             # Store sentiment sum for the current topic
             overall_sentiment_score = sentiment_sum/totalNoOFEmails
             
-            color = generateRandomColor(overall_sentiment_score)
+            color = generateRandomColorForBarChart(overall_sentiment_score)
             
             while color in colors:
-                color = generateRandomColor(overall_sentiment_score)
+                color = generateRandomColorForBarChart(overall_sentiment_score)
             
             found_topics.append(topic)
             overall_sentiment_scores.append(overall_sentiment_score)
@@ -177,60 +217,14 @@ async def get_data_for_sentiments_by_topic(userId: int):
     return JSONResponse(content=result)
 
 
-# generate colors for the sentiments by topic bar chart
-def generateRandomColor(score):
-
-        
-    if score>=-0.3 and score<=0.3:
-        
-        if score>=-0.15 and score<=0.15:
-        
-            red = random.randint(200, 225)
-            green = random.randint(200, 225)
-            blue = random.randint(0, 150)
-        else:
-            red = random.randint(225, 255)
-            green = random.randint(225, 255)
-            blue = random.randint(0, 150)  
-             
-
-        
-    elif score>0.3:
-        if score>0.6:
-            red = random.randint(0, 255)
-            green = random.randint(225, 255)
-            blue = random.randint(0, 255)
-        else:
-            red = random.randint(0, 255)
-            green = random.randint(200, 255)
-            blue = random.randint(0, 255)
-        
-    elif score<-0.3:
-        if score<-0.6:
-            red = random.randint(225, 255)
-            green = random.randint(0, 255)
-            blue = random.randint(0, 255)
-        else:
-            red = random.randint(200, 255)
-            green = random.randint(0, 255)
-            blue = random.randint(0, 255)        
-    
-           
-    color = f'rgba({red}, {green}, {blue}, 0.9)'  
-    return color
-
-
-
 @router.get("/dashboard/get_data_for_sentiments_by_time/{userId}")
-async def get_data_for_sentiments_by_time(userId: int):
+async def get_data_for_sentiments_by_time(userId: int, intervalIndays: int):
     
     labels = []
     positive_values = []
     neutral_values = []    
     negative_values = []
     
-    # currently making for the past 3 days + today
-    numberOfDaysToThePast = 3
     
     # get current time
     current_time = datetime.now(timezone.utc)
@@ -239,7 +233,7 @@ async def get_data_for_sentiments_by_time(userId: int):
     formatted_current_time = current_time.strftime("%d %b")
  
     
-    delayday = numberOfDaysToThePast
+    delayday = intervalIndays
     
     while(delayday>=0):
         
@@ -293,17 +287,17 @@ async def get_data_for_sentiments_by_time(userId: int):
                    total_no_of_negatives += 1
                    
         if total_no_of_positives>0:       
-            positive_values.append(overall_postiive_sum_for_the_day/total_no_of_positives)
+            positive_values.append(round(overall_postiive_sum_for_the_day/total_no_of_positives,2))
         else:
             positive_values.append(None)
         
         if total_no_of_neutrals>0:
-            neutral_values.append(overall_neutral_sum_for_the_day/total_no_of_neutrals)
+            neutral_values.append(round(overall_neutral_sum_for_the_day/total_no_of_neutrals,2))
         else:
             neutral_values.append(None)  
                  
         if total_no_of_negatives>0:
-            negative_values.append(overall_negative_sum_for_the_day/total_no_of_negatives)
+            negative_values.append(round(overall_negative_sum_for_the_day/total_no_of_negatives,2))
         else:
             negative_values.append(None)            
             
@@ -311,4 +305,184 @@ async def get_data_for_sentiments_by_time(userId: int):
     
     result = {"labels": labels, "positive_values":positive_values, "neutral_values":neutral_values, "negative_values":negative_values}
     
+    print(result)
     return JSONResponse(content=result)
+
+
+
+@router.get("/dashboard/get_data_for_sentiments_distribution_of_topics/{userId}")
+async def get_data_for_sentiments_distribution_of_topics(userId: int, intervalIndays: int):
+    
+    topics = ['business','products', 'marketing issues', 'assignments', 'education', 'UN', 'AI']
+    
+    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    
+    labels_freq=[]
+    positive_values_freq=[]
+    neutral_values_freq=[]
+    negative_values_freq=[]
+    
+    labels_mean=[]
+    positive_values_mean=[]
+    neutral_values_mean=[]
+    negative_values_mean=[]
+    
+    # Iterate over each topic
+    for topic in topics:
+        
+        noOfPositiveEmails_perTopic = 0
+        noOfNeutralEmails_perTopic = 0
+        noOfNegativeEmails_perTopic = 0
+        
+        labels_freq.append(topic)
+        
+        # Query MongoDB for emails with the current topic
+        emails_with_topic = collection_email_msgs.find({"time": {"$gte": n_days_ago}, "topics": {"$in": [topic]}}, {"_id": 0, "our_sentiment_score": 1})
+
+        
+        if emails_with_topic!= []:
+                       
+            positiveSentimentSum_ofTopic = 0
+            neutralSentimentSum_ofTopic = 0
+            negativeSentimentSum_ofTopic = 0
+            
+            labels_mean.append(topic)
+            
+            for email in emails_with_topic:
+                
+                sentiment_score = email["our_sentiment_score"] 
+                
+                if sentiment_score>=-0.3 and sentiment_score<=0.3:
+                    noOfNeutralEmails_perTopic += 1
+                    neutralSentimentSum_ofTopic = neutralSentimentSum_ofTopic + sentiment_score
+                elif sentiment_score>0.3:
+                    noOfPositiveEmails_perTopic += 1
+                    positiveSentimentSum_ofTopic = positiveSentimentSum_ofTopic + sentiment_score
+                else:
+                    noOfNegativeEmails_perTopic += 1
+                    negativeSentimentSum_ofTopic = negativeSentimentSum_ofTopic + sentiment_score
+            
+            if noOfPositiveEmails_perTopic>0:
+                positive_values_mean.append(positiveSentimentSum_ofTopic/noOfPositiveEmails_perTopic)
+            else:
+                positive_values_mean.append(None)
+                
+            if noOfNeutralEmails_perTopic>0:
+                neutral_values_mean.append(neutralSentimentSum_ofTopic/noOfNeutralEmails_perTopic)
+            else:
+                neutral_values_mean.append(None)
+                
+            if noOfNegativeEmails_perTopic>0:
+                negative_values_mean.append(negativeSentimentSum_ofTopic/noOfNegativeEmails_perTopic)
+            else:
+                negative_values_mean.append(None)
+                
+            positive_values_freq.append(noOfPositiveEmails_perTopic)
+            neutral_values_freq.append(noOfNeutralEmails_perTopic)
+            negative_values_freq.append(noOfNegativeEmails_perTopic)
+
+        else:
+            
+            positive_values_freq.append(0)
+            neutral_values_freq.append(0)
+            negative_values_freq.append(0)
+            
+    result = {"labels_freq": labels_freq, "positive_values_freq":positive_values_freq, 
+              "neutral_values_freq":neutral_values_freq, "negative_values_freq":negative_values_freq,
+              "labels_mean":labels_mean, "positive_values_mean":positive_values_mean, 
+              "neutral_values_mean":neutral_values_mean, "negative_values_mean":negative_values_mean}
+    
+    return JSONResponse(content=result)
+            
+
+@router.get("/dashboard/get_data_value_for_gauge_chart/{userId}")
+async def get_data_value_for_gauge_chart(userId: int, intervalIndays: int):
+    # Calculate the date n days ago
+    print(intervalIndays)
+    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+
+    # Query MongoDB collection for emails within the past n days for the given userId
+    emails = collection_email_msgs.find({"time": {"$gte": n_days_ago}})
+    
+    
+        
+    total_sentiment_score = 0
+    no_of_emails = 0
+    
+    for email in emails:
+        no_of_emails += 1
+        total_sentiment_score = total_sentiment_score + email["our_sentiment_score"]
+    
+    print("total_sentiment_score", total_sentiment_score, "no_of_emails", no_of_emails)
+    
+    if no_of_emails>0:
+        avg_sentiment_score = round(total_sentiment_score/no_of_emails,3)
+        
+        result = {"value": avg_sentiment_score}
+        print("gauge chart value",result)
+        return JSONResponse(content=result)
+    
+    else:
+        
+        result = {"value": 0}
+        return JSONResponse(content=result)
+            
+
+
+#-------------------------------------------------------helper functions--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# generate colors for the sentiments by topic bar chart
+def generateRandomColorForBarChart(score):
+
+        
+    if score>=-0.3 and score<=0.3:
+        
+        if score>=-0.15 and score<=0.15:
+        
+            red = random.randint(200, 225)
+            green = random.randint(200, 225)
+            blue = random.randint(0, 150)
+        else:
+            red = random.randint(225, 255)
+            green = random.randint(225, 255)
+            blue = random.randint(0, 150)  
+             
+
+        
+    elif score>0.3:
+        if score>0.6:
+            red = random.randint(0, 255)
+            green = random.randint(225, 255)
+            blue = random.randint(0, 255)
+        else:
+            red = random.randint(0, 255)
+            green = random.randint(200, 255)
+            blue = random.randint(0, 255)
+        
+    elif score<-0.3:
+        if score<-0.6:
+            red = random.randint(225, 255)
+            green = random.randint(0, 255)
+            blue = random.randint(0, 255)
+        else:
+            red = random.randint(200, 255)
+            green = random.randint(0, 255)
+            blue = random.randint(0, 255)        
+    
+           
+    color = f'rgba({red}, {green}, {blue}, 0.9)'  
+    return color
+
+
+
+def generateRandomColor():
+    
+    # generate random color 
+    red = random.randint(0, 255)
+    green = random.randint(0, 255)
+    blue = random.randint(0, 255)
+    
+    color = f'rgba({red}, {green}, {blue}, 0.9)' 
+    
+    return color
+
