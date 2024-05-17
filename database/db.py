@@ -31,3 +31,23 @@ def get_conversations():
     collection = mongo.get_collection("Conversations")
     return list(collection.aggregate(pl_conversations))
 
+def find_conversations(**kwargs):
+    collection = mongo.get_collection("Conversations")
+    query = {}
+
+    if "subject" in kwargs:
+        query["subject"] = {"$regex": kwargs["subject"], "$options": "i"}
+
+    if "sender" in kwargs:
+        query["sender"] = {"$regex": kwargs["sender"], "$options": "i"}
+
+    if "receiver" in kwargs:
+        query["receiver"] = {"$regex": kwargs["receiver"], "$options": "i"}
+
+    if "start_date" in kwargs and "end_date" in kwargs:
+        query["date"] = {"$gte": kwargs["start_date"], "$lte": kwargs["end_date"]}
+
+    if "sentiment_lower" in kwargs and "sentiment_upper" in kwargs:
+        query["summary.sentiment"] = {"$gte": kwargs["sentiment_lower"], "$lte": kwargs["sentiment_upper"]}
+
+    return list(collection.find(query))
