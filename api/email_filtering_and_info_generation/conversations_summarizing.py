@@ -10,11 +10,17 @@ from config import API_KEY
 import google.generativeai as genai
 import os
 
-os.environ['GOOGLE_API_KEY'] = API_KEY
+from dotenv import load_dotenv
+import os
+
+
+# Load environment variables from .env file
+load_dotenv()
+google_api_key = os.getenv("GOOGLE_API_KEY")
 
 
 # Initialize Gemini LLM
-llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7)
+llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key)
 
 
 def summarize_conversations(new_email_msg_array):

@@ -8,14 +8,14 @@ import os
 
 # Load environment variables from .env file
 load_dotenv()
-# google_api_key = os.getenv("GOOGLE_API_KEY")
+google_api_key = os.getenv("GOOGLE_API_KEY")
 
 # # Check if the value is not None before setting the environment variable
 # if google_api_key is not None:
 #     os.environ['GOOGLE_API_KEY'] = google_api_key
     
 # Initialize Gemini LLM
-llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7)
+llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key)
 
 # genai.configure(api_key=API_KEY)
 # model = genai.GenerativeModel('gemini-pro')
