@@ -38,8 +38,15 @@ app.include_router(dashboard_router,prefix="/email")
 def run_in_thread():
     asyncio.run(repeat_every_10mins())
 
-# start the continous loop in a new thread
-# threading.Thread(target=run_in_thread, args=(), daemon=True).start()
+def check_notifications_loop():
+    None
+
+# start the continous loop to extract emails in a new thread
+#threading.Thread(target=run_in_thread, args=(), daemon=True).start()
+
+# start the continous loop to check notifications in a new thread
+#threading.Thread(target=check_notifications_loop, args=(), daemon=True).start()
+
 
 
 @app.get('/', response_class=RedirectResponse, include_in_schema=False)

@@ -17,6 +17,15 @@ def individual_email_msg_serial(email_msg) -> dict:
 def list_email_msg_serial(email_msgs) -> list:
     return[individual_email_msg_serial(email_msg) for email_msg in email_msgs]
 
+def individual_suggestions_serial(suggestion) -> dict:
+    return{
+        "email_id":suggestion["email_id"],
+        "suggestion": suggestion["suggestion"],        
+    }
+    
+def list_suggestion_serial(suggestions) -> list:
+    return[individual_suggestions_serial(suggestion) for suggestion in suggestions]
+
 
 def individual_trigger_serial(trigr) -> dict:
     return{
