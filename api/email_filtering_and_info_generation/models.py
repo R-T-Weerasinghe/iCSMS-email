@@ -26,6 +26,9 @@ class Convo_summary(BaseModel):
 class Suggestion(BaseModel):
     email_id:str
     suggestion:str
+    prodcuts:List[str]
+    date:datetime
+    recipient:str
     
 class Issue(BaseModel):
     thread_id:str

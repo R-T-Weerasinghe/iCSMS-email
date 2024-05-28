@@ -70,94 +70,98 @@ async def check_sentiment_threshold_notification_condition():
         
         for trigger in triggers_array:
             
-            if reading_email_address in trigger["accs_to_check_ss"]:
-                
-                ss_trig_type = "none"
-                
-                if overall_sentiments_dict[f"{reading_email_address}"] < trigger["ss_lower_bound"][f"{reading_email_address}"]:
-                    
-                    trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_id":trigger["user_id"], "is_lower_bound_triggered":'yes',  
-                                  "is_upper_bound_triggered":'no', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
-                                  "recepient email": reading_email_address}
-                    
-                                     
-                    send_trig_event(trig_event)
-                    
-                    ss_trig_type = "lower"
-                    
-                   
-                
-                if overall_sentiments_dict[f"{reading_email_address}"]  > trigger["ss_upper_bound"][f"{reading_email_address}"]:
-                    
-                    trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_id":trigger["user_id"], "is_lower_bound_triggered":'no', 
-                                  "is_upper_bound_triggered":'yes', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
-                                  "recepient email": reading_email_address}
-                    
-                    send_trig_event(trig_event)
-                    
-                    ss_trig_type = "upper"
-                
-                if ss_trig_type != "none":
-                    
-                    notific_channel = collection_notificationSendingChannels.find({"user_id":trigger["user_id"]})
-                    
-                    if notific_channel:
-                        # Access the noti_sending_emails array
-                        noti_sending_emails = notific_channel.get("noti_sending_emails", [])
-                        
-                        is_private_email_notifications = notific_channel.get("is_email_notifications")
-                        
-                        if is_private_email_notifications:
-                        
-                         if noti_sending_emails != []:
-                        
-                            # setting up subject and message for lower threshold trigger
-                            if ss_trig_type == "lower":
-                                
-                                subject = "High NEGATIVE Overall Sentiment Score Recorded"
-                                message = f"""the overall sentiment score of the {reading_email_address}, has gone below the negative sentiment
-                                threshold of {trigger["ss_lower_bound"]}. 
-                                At the time of the sending of this email,
-                                the overall sentiment score of the above mentioned email account was 
-                                recorded to be {overall_sentiments_dict[reading_email_address]}. 
-                                Note that the above score is based upon the emails that were received within the past 14 days."""
-                            
-                            # setting up subject and message for upper threshold trigger
-                            elif ss_trig_type == "upper":
-                                
-                                subject = "High Positive Overall Sentiment Score Recorded"
-                                message = f"""the overall sentiment score of the {reading_email_address}, has gone above the positive sentiment
-                                threshold of {trigger["ss_upper_bound"]}. At the time of the sending of this email,
-                                the overall sentiment score of the above mentioned email account was 
-                                recorded to be {overall_sentiments_dict[reading_email_address]}.
-                                Note that the above score is based upon the emails that were received within the past 14 days."""
-                            
-                            if ss_trig_type == "lower" or ss_trig_type == "upper":
-                                
-                                for noti_sending_email in noti_sending_emails:
-                                        
-                                    params = {
-                                    "to": noti_sending_email,
-                                    "sender": "raninduharischandra12@gmail.com",
-                                    "subject": subject,
-                                    "msg_plain": message,
-                                    "signature": True  # use my account signature
-                                    }
-                                    
-                                    message = gmail.send_message(**params)                           
+            if(trigger["is_checking_ss"]):
             
+                if reading_email_address in trigger["accs_to_check_ss"]:
+                    
+                    ss_trig_type = "none"
+                    
+                    if overall_sentiments_dict[f"{reading_email_address}"] < trigger["ss_lower_bound"][f"{reading_email_address}"]:
                         
-                        is_dashboard_notifications = notific_channel.get("is_dashboard_notifications")
+                        trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_id":trigger["user_id"], "is_lower_bound_triggered":'yes',  
+                                    "is_upper_bound_triggered":'no', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
+                                    "recepient email": reading_email_address}
                         
-                        if is_dashboard_notifications:
+                                        
+                        send_trig_event(trig_event)
+                        
+                        ss_trig_type = "lower"
+                        
+                    
+                    
+                    if overall_sentiments_dict[f"{reading_email_address}"]  > trigger["ss_upper_bound"][f"{reading_email_address}"]:
+                        
+                        trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_id":trigger["user_id"], "is_lower_bound_triggered":'no', 
+                                    "is_upper_bound_triggered":'yes', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
+                                    "recepient email": reading_email_address}
+                        
+                        send_trig_event(trig_event)
+                        
+                        ss_trig_type = "upper"
+                    
+                    if ss_trig_type != "none":
+                        
+                        notific_channel = collection_notificationSendingChannels.find({"user_id":trigger["user_id"]})
+                        
+                        if notific_channel:
+                            # Access the noti_sending_emails array
+                            noti_sending_emails = notific_channel.get("noti_sending_emails", [])
                             
-                            # perform the POST call to the main dashboard
+                            is_private_email_notifications = notific_channel.get("is_email_notifications")
                             
-                             print("sending notification to main dashboard")
-                        
+                            if is_private_email_notifications:
+                            
+                            if noti_sending_emails != []:
+                            
+                                # setting up subject and message for lower threshold trigger
+                                if ss_trig_type == "lower":
+                                    
+                                    subject = "High NEGATIVE Overall Sentiment Score Recorded"
+                                    message = f"""the overall sentiment score of the {reading_email_address}, has gone below the negative sentiment
+                                    threshold of {trigger["ss_lower_bound"]}. 
+                                    At the time of the sending of this email,
+                                    the overall sentiment score of the above mentioned email account was 
+                                    recorded to be {overall_sentiments_dict[reading_email_address]}. 
+                                    Note that the above score is based upon the emails that were received within the past 14 days."""
+                                
+                                # setting up subject and message for upper threshold trigger
+                                elif ss_trig_type == "upper":
+                                    
+                                    subject = "High Positive Overall Sentiment Score Recorded"
+                                    message = f"""the overall sentiment score of the {reading_email_address}, has gone above the positive sentiment
+                                    threshold of {trigger["ss_upper_bound"]}. At the time of the sending of this email,
+                                    the overall sentiment score of the above mentioned email account was 
+                                    recorded to be {overall_sentiments_dict[reading_email_address]}.
+                                    Note that the above score is based upon the emails that were received within the past 14 days."""
+                                
+                                if ss_trig_type == "lower" or ss_trig_type == "upper":
+                                    
+                                    for noti_sending_email in noti_sending_emails:
+                                            
+                                        params = {
+                                        "to": noti_sending_email,
+                                        "sender": "raninduharischandra12@gmail.com",
+                                        "subject": subject,
+                                        "msg_plain": message,
+                                        "signature": True  # use my account signature
+                                        }
+                                        
+                                        message = gmail.send_message(**params)                           
+                
+                            
+                            is_dashboard_notifications = notific_channel.get("is_dashboard_notifications")
+                            
+                            if is_dashboard_notifications:
+                                
+                                # perform the POST call to the main dashboard
+                                
+                                print("sending notification to main dashboard")
+                            
     
     # checking and sending ss_threshold notification of the OVERALL system
     for trigger in triggers_array:
+        
+        if(trigger["is_checking_ss"]):
             
             if "overall" in trigger["accs_to_check_ss"]:
                 

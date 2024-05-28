@@ -37,7 +37,8 @@ async def identify_and_summarize_suggestions(new_email_msg_array):
             # Send the email body to Gemini for suggestion summarization
             response = llm.invoke(suggestion_summarizing_script)
             
-            suggestion ={"email_id": new_email_msg["id"], "suggestion":response.content}
+            suggestion ={"email_id": new_email_msg["id"], "suggestion":response.content, "products":new_email_msg["products"],
+                         "date":new_email_msg["time"], "recipient":new_email_msg["recipient"]}
             
 
             # send the new suggestion to the Suggestions collection
