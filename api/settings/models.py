@@ -13,7 +13,7 @@ class Trigger(BaseModel):
      user_id:int
      is_checking_ss:bool
      accs_to_check_ss:List[str]
-     accs_to_check_criticality:List[str]
+     accs_to_check_overdue_emails:List[str]
      ss_lower_bound:int
      ss_upper_bound:int
      is_lower_checking:bool

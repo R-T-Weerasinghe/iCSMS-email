@@ -320,12 +320,12 @@ async def update_triggers_ss(user_id: int, accs_to_check_ss: list[str], lowerSS_
 
 # update a trigger for a criticality triggers form change     
 @router.put("/update_triggers_criticality/{user_id}")
-async def update_triggers_criticality(user_id: int, accs_to_check_criticality: list[str]):
+async def update_triggers_criticality(user_id: int, accs_to_check_overdue_emails: list[str]):
     try:
         result = collection_trigers.update_one(
                 {"user_id": user_id},
                 {"$set": {
-                    "accs_to_check_criticality": accs_to_check_criticality
+                    "accs_to_check_overdue_emails": accs_to_check_overdue_emails
                  }}
             )
         if result.modified_count == 1:
@@ -459,8 +459,8 @@ async def get_accs_to_check_criticality(user_id: int):
     # Query MongoDB collection to find documents with the specified user_id
     result = collection_trigers.find_one({"user_id": user_id})
     if result:
-        accs_to_check_criticality = result.get("accs_to_check_criticality", [])
-        return accs_to_check_criticality
+        accs_to_check_overdue_emails = result.get("accs_to_check_overdue_emails", [])
+        return accs_to_check_overdue_emails
     else:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -482,7 +482,7 @@ async def updateTriggersTableSS(userID,emailAccsToCheckSS,lowerNotify, lowerSS, 
         cuurentHighestTrigID = await get_highest_trigger_id()
         newtrigID = cuurentHighestTrigID+1
         
-        new_trigger = Trigger(trigger_id = newtrigID, user_id=userID, is_checking_ss=is_checking_ss, accs_to_check_ss= emailAccsToCheckSS, accs_to_check_criticality = [], ss_lower_bound= lowerSS, ss_upper_bound=upperSS,  is_lower_checking = lowerNotify,  is_upper_checking = upperNotify)
+        new_trigger = Trigger(trigger_id = newtrigID, user_id=userID, is_checking_ss=is_checking_ss, accs_to_check_ss= emailAccsToCheckSS, accs_to_check_overdue_emails = [], ss_lower_bound= lowerSS, ss_upper_bound=upperSS,  is_lower_checking = lowerNotify,  is_upper_checking = upperNotify)
         
         await send_new_trigger(new_trigger.dict())
 
@@ -496,7 +496,7 @@ async def updateTriggersTableCriticality(userID, emailAccsToCheckCriticality):
          cuurentHighestTrigID = await get_highest_trigger_id()
          newtrigID = cuurentHighestTrigID+1
          
-         new_trigger = Trigger(trigger_id = newtrigID, user_id=userID, accs_to_check_ss= [], accs_to_check_criticality = emailAccsToCheckCriticality, ss_lower_bound= None, ss_upper_bound=None)
+         new_trigger = Trigger(trigger_id = newtrigID, user_id=userID, accs_to_check_ss= [], accs_to_check_overdue_emails = emailAccsToCheckCriticality, ss_lower_bound= None, ss_upper_bound=None)
          
          await send_new_trigger(new_trigger.dict())
          

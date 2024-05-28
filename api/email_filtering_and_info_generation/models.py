@@ -28,7 +28,7 @@ class Suggestion(BaseModel):
     suggestion:str
     prodcuts:List[str]
     date:datetime
-    recipient:str
+    recepient:str
     
 class Issue(BaseModel):
     thread_id:str

@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException
 from api.settings.models import IntergratingEmailData, NotiSendingChannelsRecord
 from typing import Dict, Any
@@ -14,9 +15,83 @@ router = APIRouter()
 
 
 # filtered suggestions listener
-@router.get("/suggestion-filtering/get_filtered_suggestions?intervalIndays")
+@router.get("/suggestion-filtering/get_filtered_suggestions")
 def get_filtered_suggestions(intervalIndays: int, productSelected: str, recipientEmailSelected: str):
     
-    suggestions_docs = collection_suggestions.find({})
+    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    
+    if productSelected=="" and recipientEmailSelected=="":
+        query = {
+            "date": {"$gte": n_days_ago}
+        }  
+    elif productSelected=="":
+        query = {
+            "recepient": recipientEmailSelected,
+            "date": {"$gte": n_days_ago}
+        }  
+    elif recipientEmailSelected=="":
+        query = {
+            "products": {"$elemMatch": {"$eq": productSelected}},
+            "date": {"$gte": n_days_ago}
+        }          
+    else:
+        query = {
+            "recepient": recipientEmailSelected,
+            "products": {"$elemMatch": {"$eq": productSelected}},
+            "date": {"$gte": n_days_ago}
+        }
+    
+    
+    
+    suugestions_query_result = collection_suggestions.find(query)
+    
+    suggestions_dict_list = []
+    
+    if suugestions_query_result:
+        
+        for doc in suugestions_query_result:
+            
+            # remove the timezone part
+            dt = datetime.fromisoformat(doc["date"][:-6])
+            # Extract the date in "yyyy-mm-dd" format
+            date_str = dt.date().isoformat()
+            
+            suggestion = {"receiver":doc["recepient"], "date":date_str, "products":doc["products"], 
+                          "suggestion":doc["suggestion"]}
+            
+            suggestions_dict_list.append(suggestion)
+            
+    
+    result = {"suggestionsData": suggestions_dict_list} 
+    return JSONResponse(content=result)    
 
+@router.get("/suggestion-filtering/get_all_recepients")
+async def get_all_recepients():
+    
+    recepients = []
+    cursor = collection_readingEmailAccounts.find()
+    
+    for doc in cursor:
+        recepients.append(doc["address"])
+    
+    result = {"recepients", recepients}
+    return JSONResponse(content=result)  
 
+@router.get("/suggestion-filtering/get_all_products")
+async def get_all_products():
+    
+    products=[]
+    
+    cursor_doc = collection_configurations.find({"id":1})
+    
+    if cursor_doc:
+        products = cursor_doc.get("products", [])
+    
+    result = {"products":products}
+    return JSONResponse(content=result) 
+    
+    
+    
+    
+    
+    
