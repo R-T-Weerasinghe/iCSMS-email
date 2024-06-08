@@ -21,7 +21,7 @@ class Convo_summary(BaseModel):
     thread_id:str
     subject:str
     summary:str
-    email_ids:List[str]
+    products:List[str]
     
 class Suggestion(BaseModel):
     email_id:str
@@ -58,7 +58,7 @@ class Inquiry(BaseModel):
     end_time: Optional[datetime] = None
     effectiveness: Optional[str] = None
     efficiency: Optional[str] = None
-    isOverdue:bool
+ 
     
     
 class Reading_email_acc(BaseModel):

@@ -4,6 +4,7 @@ import time
 
 from simplegmail import Gmail
 from api.email_filtering_and_info_generation.configurations.database import collection_email_msgs, collection_inquiries,collection_issues, collection_notificationSendingChannels, collection_configurations
+from api.email_filtering_and_info_generation.email_sending import send_email
 from api.email_filtering_and_info_generation.routes import get_overall_sentiment_value, get_overdue_issues, get_triggers_array, send_overdue_trigger_event, send_trig_event
 
 
@@ -36,34 +37,25 @@ async def check_sentiment_threshold_notification_condition():
     reading_email_addresses = get_all_reading_email_addresses()
     no_of_reading_email_addresses = len(reading_email_addresses)
     
-    try:
-        gmail = Gmail(client_secret_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{1}/client_secret.json",
-                creds_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{1}/gmail_token.json")
-
-    except Exception as e:
-        
-        file_path =f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{1}/gmail_token.json"
-        if os.path.exists(file_path):
-            # Delete the file
-            os.remove(file_path)
-            
-        time.sleep(5)
-            
-        gmail = Gmail(client_secret_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{1}/client_secret.json",
-                creds_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{1}/gmail_token.json")
     
     overall_sentiments_dict = {}
     
     overall_sentiment_scores_sum = 0
+    overall_number_of_emails = 0
     
     triggers_array = await get_triggers_array()
     
     for reading_email_address in reading_email_addresses:
         
-        overall_sentiments_dict[reading_email_address] = await get_overall_sentiment_value(reading_email_address, 14)
-        overall_sentiment_scores_sum = overall_sentiment_scores_sum + overall_sentiments_dict[reading_email_address]
+        sentiment_info_array = await get_overall_sentiment_value(reading_email_address, 14)
+        overall_sentiments_dict[reading_email_address] = sentiment_info_array[0]
+        overall_sentiment_scores_sum = overall_sentiment_scores_sum + sentiment_info_array[1]
+        overall_number_of_emails = overall_number_of_emails + sentiment_info_array[2]
     
-    overall_sentiments_dict["overall"] = overall_sentiment_scores_sum/no_of_reading_email_addresses
+    if overall_number_of_emails >0:
+        overall_sentiments_dict["overall"] = overall_sentiment_scores_sum/overall_number_of_emails
+    else:
+        overall_sentiments_dict["overall"] = 0
        
     # checking and sending ss_threshold notification of each READING EMAIL
     for reading_email_address in reading_email_addresses:
@@ -111,44 +103,36 @@ async def check_sentiment_threshold_notification_condition():
                             
                             if is_private_email_notifications:
                             
-                            if noti_sending_emails != []:
-                            
-                                # setting up subject and message for lower threshold trigger
-                                if ss_trig_type == "lower":
-                                    
-                                    subject = "High NEGATIVE Overall Sentiment Score Recorded"
-                                    message = f"""the overall sentiment score of the {reading_email_address}, has gone below the negative sentiment
-                                    threshold of {trigger["ss_lower_bound"]}. 
-                                    At the time of the sending of this email,
-                                    the overall sentiment score of the above mentioned email account was 
-                                    recorded to be {overall_sentiments_dict[reading_email_address]}. 
-                                    Note that the above score is based upon the emails that were received within the past 14 days."""
+                                if noti_sending_emails != []:
                                 
-                                # setting up subject and message for upper threshold trigger
-                                elif ss_trig_type == "upper":
-                                    
-                                    subject = "High Positive Overall Sentiment Score Recorded"
-                                    message = f"""the overall sentiment score of the {reading_email_address}, has gone above the positive sentiment
-                                    threshold of {trigger["ss_upper_bound"]}. At the time of the sending of this email,
-                                    the overall sentiment score of the above mentioned email account was 
-                                    recorded to be {overall_sentiments_dict[reading_email_address]}.
-                                    Note that the above score is based upon the emails that were received within the past 14 days."""
-                                
-                                if ss_trig_type == "lower" or ss_trig_type == "upper":
-                                    
-                                    for noti_sending_email in noti_sending_emails:
-                                            
-                                        params = {
-                                        "to": noti_sending_email,
-                                        "sender": "raninduharischandra12@gmail.com",
-                                        "subject": subject,
-                                        "msg_plain": message,
-                                        "signature": True  # use my account signature
-                                        }
+                                    # setting up subject and message for lower threshold trigger
+                                    if ss_trig_type == "lower":
                                         
-                                        message = gmail.send_message(**params)                           
-                
-                            
+                                        subject = "High NEGATIVE Overall Sentiment Score Recorded"
+                                        message = f"""the overall sentiment score of the {reading_email_address}, has gone below the negative sentiment
+                                        threshold of {trigger["ss_lower_bound"]}. 
+                                        At the time of the sending of this email,
+                                        the overall sentiment score of the above mentioned email account was 
+                                        recorded to be {overall_sentiments_dict[reading_email_address]}. 
+                                        Note that the above score is based upon the emails that were received within the past 14 days."""
+                                    
+                                    # setting up subject and message for upper threshold trigger
+                                    elif ss_trig_type == "upper":
+                                        
+                                        subject = "High Positive Overall Sentiment Score Recorded"
+                                        message = f"""the overall sentiment score of the {reading_email_address}, has gone above the positive sentiment
+                                        threshold of {trigger["ss_upper_bound"]}. At the time of the sending of this email,
+                                        the overall sentiment score of the above mentioned email account was 
+                                        recorded to be {overall_sentiments_dict[reading_email_address]}.
+                                        Note that the above score is based upon the emails that were received within the past 14 days."""
+                                    
+                                    if ss_trig_type == "lower" or ss_trig_type == "upper":
+                                        
+                                        for noti_sending_email in noti_sending_emails:
+                                                
+                                            send_email(1, noti_sending_email, subject, message)                           
+                    
+                                
                             is_dashboard_notifications = notific_channel.get("is_dashboard_notifications")
                             
                             if is_dashboard_notifications:
@@ -160,6 +144,8 @@ async def check_sentiment_threshold_notification_condition():
     
     # checking and sending ss_threshold notification of the OVERALL system
     for trigger in triggers_array:
+        
+        reading_email_address = "overall"
         
         if(trigger["is_checking_ss"]):
             
@@ -229,15 +215,7 @@ async def check_sentiment_threshold_notification_condition():
                                 
                                 for noti_sending_email in noti_sending_emails:
                                         
-                                    params = {
-                                    "to": noti_sending_email,
-                                    "sender": "raninduharischandra12@gmail.com",
-                                    "subject": subject,
-                                    "msg_plain": message,
-                                    "signature": True  # use my account signature
-                                    }
-                                    
-                                    message = gmail.send_message(**params)                           
+                                    send_email(1, noti_sending_email, subject, message)                          
             
                         
                         is_dashboard_notifications = notific_channel.get("is_dashboard_notifications")
@@ -279,6 +257,44 @@ async def check_overdue_emails():
                                     "thread_id":new_overdue_issue['thread_id'], "recepient_email":new_overdue_issue["recepient_email"]}
         
                 await send_overdue_trigger_event(new_overdue_trig)
+                
+                
+                # send email notification and dashboard notifications
+                
+                notific_channel = collection_notificationSendingChannels.find({"user_id":trigger["user_id"]})
+                    
+                if notific_channel:
+                    # Access the noti_sending_emails array
+                    noti_sending_emails = notific_channel.get("noti_sending_emails", [])
+                    
+                    is_private_email_notifications = notific_channel.get("is_email_notifications")
+                    
+                    if is_private_email_notifications:
+                    
+                        if noti_sending_emails != []:
+                    
+                        # setting up subject and messages
+                            
+                            subject = f"Overdue Issue recorded from {new_overdue_issue["recepient_email"]}"
+                            message = f"""The following issue has overdued. It has been going over for more than {overdue_margin_time} days.\n
+                            The issue:\n
+                            {new_overdue_issue["issue_summary"]}"""
+    
+                            
+                            for noti_sending_email in noti_sending_emails:
+                                    
+                                send_email(1, noti_sending_email, subject, message)                          
+        
+                    
+                    is_dashboard_notifications = notific_channel.get("is_dashboard_notifications")
+                    
+                    if is_dashboard_notifications:
+                        
+                        # perform the POST call to the main dashboard
+                        
+                            print("sending notification to main dashboard")
+                        
+    
         
 
 async def check_notifications_for_managers():

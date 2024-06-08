@@ -45,6 +45,14 @@ async def identify_and_summarize_suggestions(new_email_msg_array):
             await send_suggestion(suggestion)
             
             
+            print("suggestion Identified.")
+            
+            
+        else:
+            
+            print("no suggestion identified in this email")
+            
+            
             
             
             

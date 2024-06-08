@@ -498,7 +498,7 @@ async def get_data_for_issue_and_inquiry_frequency_by_products(userId: int, inte
 
     # Loop through the arrays and sum the corresponding elements
     for freq, sentiment in zip(issue_freq, overall_sentiment_scores_of_topics):
-        summation_result.append(sentiment-freq) 
+        summation_result.append(sentiment*freq-freq) 
         
     min_value = min(summation_result)
     max_value = max(summation_result)

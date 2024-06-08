@@ -1,6 +1,6 @@
 
 from langchain_google_genai import ChatGoogleGenerativeAI
-from api.email_filtering_and_info_generation.routes import send_convo_summary
+from api.email_filtering_and_info_generation.routes import send_convo_summary, update_summary
  
 import google.generativeai as genai
 import os
@@ -54,15 +54,25 @@ async def summarize_conversations(new_email_msg_array):
         it shoudl be able to give the reader an undersating about the email conversation in a very short time. Also, only output the summary. Don't output anything else."""
         
         # Send the full convo text to Gemini for summarizing
-        response = llm.invoke(conversation_summarizing_script)      
+        response = llm.invoke(conversation_summarizing_script)  
+        
+        print("\n")
+        print("summary")
+        print(response.content)   
+        print("\n") 
         
         # at last adding the new_email_id to the array
         
+        if new_email_msg["thread_id"] in thread_id_list:
+             update_summary(new_email_msg["thread_id"], response.content)
         
-        new_convo_summary = {"thread_id":new_email_msg["thread_id"], "subject":new_email_msg["subject"], "summary":response.content,
-                              "email_ids":email_ids}
+        else:
         
-        await send_convo_summary(new_convo_summary)
+            new_convo_summary = {"thread_id":new_email_msg["thread_id"], "subject":new_email_msg["subject"], "summary":response.content,
+                                "email_ids":email_ids, "products":new_email_msg["products"]}
+            
+            await send_convo_summary(new_convo_summary)
+        
         
         
         

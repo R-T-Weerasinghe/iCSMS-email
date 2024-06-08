@@ -71,7 +71,7 @@ def identify_criticality(new_email_msg_array):
         response = llm.invoke(criticality_script)
 
         # Print the analysis (replace with sentiment score when available)
-        print(f"criticality category: {response.content}")
+        print(f"criticality categories of the emails found: {response.content}")
         
         # update the criticality_category
         new_email_msg["criticality_category"]=response.content

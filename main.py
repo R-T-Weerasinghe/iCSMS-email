@@ -11,9 +11,10 @@ import uvicorn  # debugging
 
 from fastapi import FastAPI
 from api.summary.routes import router as conversation_router
-# from api.email_filtering_and_info_generation.routes import router as retrieval_and_info_router
+from api.email_filtering_and_info_generation.routes import router as retrieval_and_info_router
 from api.settings.routes import router as settings_router
 from api.dashboard.routes import router as dashboard_router
+from api.suggestions_page.routes import router as suggestions_router
 from api.email_filtering_and_info_generation.read_emails import repeat_every_10mins
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -29,9 +30,10 @@ app.add_middleware(
 )
 
 app.include_router(conversation_router, prefix="/email")
-# app.include_router(retrieval_and_info_router, prefix="/email")
+app.include_router(retrieval_and_info_router, prefix="/email")
 app.include_router(settings_router,prefix="/email")
 app.include_router(dashboard_router,prefix="/email")
+app.include_router(suggestions_router,prefix="/email")
 
 
 
@@ -41,11 +43,14 @@ def run_in_thread():
 def check_notifications_loop():
     None
 
-# start the continous loop to extract emails in a new thread
-#threading.Thread(target=run_in_thread, args=(), daemon=True).start()
+# @app.on_event("startup")
+# async def on_startup():
+    
+#     # start the continous loop to extract emails in a new thread
+#     threading.Thread(target=run_in_thread, args=(), daemon=True).start()
 
-# start the continous loop to check notifications in a new thread
-#threading.Thread(target=check_notifications_loop, args=(), daemon=True).start()
+#     # start the continous loop to check notifications in a new thread
+#     #threading.Thread(target=check_notifications_loop, args=(), daemon=True).start()
 
 
 

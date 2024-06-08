@@ -1,7 +1,9 @@
+import asyncio
 from langchain_google_genai import ChatGoogleGenerativeAI
 from api.email_filtering_and_info_generation.config import API_KEY  
 import google.generativeai as genai
 import os
+from api.email_filtering_and_info_generation.routes import getProductsList
 from dotenv import load_dotenv
 import json
 
@@ -15,35 +17,40 @@ llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7)
 
 
 # topics list
-products = ['business','products', 'marketing issues', 'assignments', 'education', 'UN', 'AI']
 
 
-def identify_topics(new_email_msg_array):
+
+
+async def identify_topics(new_email_msg_array):
     
-    for new_email_msg in new_email_msg_array:
-        
-        new_products_arr=[]
-        
-        # for topic in topics:
+    products = await getProductsList()
+    print("product list retainded     :", products)
+    if products!=[]:
+    
+        for new_email_msg in new_email_msg_array:
             
-        #     topics_script = f"""if this email '{new_email_msg["body"]}'
-        #                         belong to the topic '{topic}', output the true. otherwise output false. Don't output anything other than true or false."""
+            new_products_arr=[]
+            
+            # for topic in topics:
+                
+            #     topics_script = f"""if this email '{new_email_msg["body"]}'
+            #                         belong to the topic '{topic}', output the true. otherwise output false. Don't output anything other than true or false."""
 
-           
+            
 
-        #     # Send the email body to Gemini for criticality identification
-        #     response = llm.invoke(topics_script2)
-        #     print(response.content)
-        #     # if(response.content=="true"):
-        #     #     new_topics_arr.append(topic)
+            #     # Send the email body to Gemini for criticality identification
+            #     response = llm.invoke(topics_script2)
+            #     print(response.content)
+            #     # if(response.content=="true"):
+            #     #     new_topics_arr.append(topic)
+                
+                
+            products_script2 = f"""if this email '{new_email_msg["body"]}'
+                                    is regarding any of the products in the following products list '{products}', output the matched products as a list which is in the following format '["product1", "product2"]'. Don't output anything other than matched products list. if no products are matched output and empty list like this '[]'"""    
             
+            response = llm.invoke(products_script2)  
             
-        products_script2 = f"""if this email '{new_email_msg["body"]}'
-                                is regarding any of the products in the following products list '{products}', output the matched products as a list which is in the following format '["product1", "product2"]'. Don't output anything other than matched products list. if no products are matched output and empty list like this '[]'"""    
-         
-        response = llm.invoke(products_script2)  
-        
-        new_products_arr = json.loads(response.content)
-        print(new_products_arr)
-        
-        new_email_msg["products"] = new_products_arr
+            new_products_arr = json.loads(response.content)
+            print("identified products for this email    :",new_products_arr)
+            
+            new_email_msg["products"] = new_products_arr

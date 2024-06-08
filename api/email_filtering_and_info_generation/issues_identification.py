@@ -43,7 +43,7 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
             response = model.generate_content(issue_inquiry_identification_script)
             response.resolve()  
             
-            print("issue_inquiry_identification" + response.text) 
+            print("issue_inquiry_identification  : " + response.text) 
             
             # if the email of the new thread is an inquiry
             if "inquiry"== response.text:
@@ -81,7 +81,7 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 await send_inquiry(new_inquiry)            
             
             # if the email of the new thread is an issue
-            if "issue" == response.content:
+            if "issue" == response.text:
                 time.sleep(10)
                 
                 
