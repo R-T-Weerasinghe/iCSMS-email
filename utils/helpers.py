@@ -1,5 +1,6 @@
 # System-wide helper functions and configurations
 import math
+from datetime import datetime, date
 
 def scale_score(score: float, *, scale_type: str="linear", precision: int=3) -> float:
     """
@@ -44,7 +45,22 @@ def scale_score(score: float, *, scale_type: str="linear", precision: int=3) -> 
         return -1
     if scaled_score > 1:
         return 1
-    
+
     rounded_scaled_score = round(scale_score, precision) # type: ignore
     return rounded_scaled_score
 
+
+def date_to_datetime(value):
+    """
+    Converts a date object to a datetime object. If the object is not a date object, it is returned as is.
+
+    Args:
+        value (date | other): The object to convert.
+
+    Returns:
+        datetime | other: The converted datetime object or object returned as is.
+
+    """
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return datetime.combine(value, datetime.min.time())
+    return value
