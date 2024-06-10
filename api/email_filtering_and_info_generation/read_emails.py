@@ -8,6 +8,7 @@ from api.email_filtering_and_info_generation.emailIntegration import integrateEm
 from api.email_filtering_and_info_generation.criticality_identification import identify_criticality
 from api.email_filtering_and_info_generation.notificationidentification import identify_notifcations
 from api.email_filtering_and_info_generation.data_masking import mask_email_messages
+from api.email_filtering_and_info_generation.sentiment_analysis import identify_sentiments
 from api.email_filtering_and_info_generation.topic_identification import identify_topics
 
 
@@ -30,7 +31,8 @@ email_acc_array = []
 
 async def read_all_new_emails(new_email_msg_array):
     
-    email_acc_array= await get_reading_emails_array()
+    #email_acc_array= await get_reading_emails_array()
+    email_acc_array = [{'id': 1, 'address': 'raninduharischandra12@gmail.com', 'nickname': 'ranindu1'}]
     print("email_scc_array in read all new emails")
     print(email_acc_array)
     for email_acc in email_acc_array: 
@@ -72,15 +74,15 @@ async def read_all_new_emails(new_email_msg_array):
             print(time_difference_minutes)
 
             # checking whether the msg came in the last 10 mins
-            if abs(time_difference_minutes) <= 1000:
+            if abs(time_difference_minutes) <= 1500:
                 # print("Subject: " + message.subject)
                 # print("To: " + message.recipient)
                 # print("From: " + message.sender)
                 # print("Subject: " + message.subject)
                 # print("Date: " + message.date)
-
+                # print("message incoming time", message_incoming_time)
                 # make a new email_msg dictionary
-                email_msg_dict={"id": message.id, "recipient": message.recipient, "sender": message.sender, "subject": message.subject,
+                email_msg_dict={"id": message.id,"time":message_incoming_time, "recipient": message.recipient, "sender": message.sender, "subject": message.subject,
                                 "thread_id": message.thread_id, "body":message.snippet, "criticality_category":"", "org_sentiment_score":0, "our_sentiment_score":0, "topics":[]}
 
                  # append the new email msg dict to the new_email_msg_array
@@ -108,14 +110,15 @@ async def repeat_every_10mins():
     await read_all_new_emails(new_email_msg_array)
     #print(new_email_msg_array)
     mask_email_messages(new_email_msg_array)
-    #print(new_email_msg_array)
+    print(new_email_msg_array)
+    identify_sentiments(new_email_msg_array)
     identify_criticality(new_email_msg_array)
     #print(new_email_msg_array)
     #await identify_notifcations(new_email_msg_array)
     identify_topics(new_email_msg_array)
-    print(new_email_msg_array)
+    print("emails with topics",new_email_msg_array)
     # print(new_email_msg_array)
-    #await push_new_emails_to_DB(new_email_msg_array)
+    await push_new_emails_to_DB(new_email_msg_array)
     
     interval = 60
     next_time = time.time() + interval
@@ -127,6 +130,7 @@ async def repeat_every_10mins():
             await read_all_new_emails(new_email_msg_array)
             #print(new_email_msg_array)
             mask_email_messages(new_email_msg_array)
+            identify_sentiments(new_email_msg_array)
             identify_criticality(new_email_msg_array)
             #print(new_email_msg_array)
             await identify_notifcations(new_email_msg_array)
