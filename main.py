@@ -11,7 +11,9 @@ import uvicorn  # debugging
 
 from fastapi import FastAPI
 from api.summary.routes import router as conversation_router
+
 from api.email_filtering_and_info_generation.routes import router as retrieval_and_info_router
+from api.filtering.routes import router as filtering_router
 from api.settings.routes import router as settings_router
 from api.dashboard.routes import router as dashboard_router
 from api.suggestions_page.routes import router as suggestions_router
@@ -29,12 +31,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(conversation_router, prefix="/email")
-app.include_router(retrieval_and_info_router, prefix="/email")
-app.include_router(settings_router,prefix="/email")
-app.include_router(dashboard_router,prefix="/email")
-app.include_router(suggestions_router,prefix="/email")
 
+EMAIL_PREFIX = "/email"
+
+app.include_router(conversation_router, prefix=EMAIL_PREFIX)
+app.include_router(settings_router, prefix=EMAIL_PREFIX)
+app.include_router(filtering_router, prefix=EMAIL_PREFIX)
+app.include_router(retrieval_and_info_router, prefix=EMAIL_PREFIX)
+app.include_router(dashboard_router,prefix=EMAIL_PREFIX)
+app.include_router(suggestions_router,prefix=EMAIL_PREFIX)
 
 
 def run_in_thread():
