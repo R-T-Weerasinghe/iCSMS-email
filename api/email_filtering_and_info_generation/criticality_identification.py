@@ -8,14 +8,14 @@ import os
 
 # Load environment variables from .env file
 load_dotenv()
-# google_api_key = os.getenv("GOOGLE_API_KEY")
+google_api_key = os.getenv("GOOGLE_API_KEY")
 
 # # Check if the value is not None before setting the environment variable
 # if google_api_key is not None:
 #     os.environ['GOOGLE_API_KEY'] = google_api_key
     
 # Initialize Gemini LLM
-llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7)
+llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key)
 
 # genai.configure(api_key=API_KEY)
 # model = genai.GenerativeModel('gemini-pro')
@@ -71,7 +71,7 @@ def identify_criticality(new_email_msg_array):
         response = llm.invoke(criticality_script)
 
         # Print the analysis (replace with sentiment score when available)
-        print(f"criticality category: {response.content}")
+        print(f"criticality categories of the emails found: {response.content}")
         
         # update the criticality_category
         new_email_msg["criticality_category"]=response.content
