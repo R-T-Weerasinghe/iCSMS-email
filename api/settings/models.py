@@ -10,7 +10,7 @@ class IntergratingEmailData(BaseModel):
 
 class Trigger(BaseModel):
      trigger_id:int
-     user_id:int
+     user_name:str
      is_checking_ss:bool
      accs_to_check_ss:List[str]
      accs_to_check_overdue_issues:List[str]
@@ -21,7 +21,7 @@ class Trigger(BaseModel):
      is_upper_checking:bool
 
 class NotiSendingChannelsRecord(BaseModel):
-        user_id:int
+        user_name:str
         is_dashboard_notifications: bool
         is_email_notifications: bool
         noti_sending_emails:List[str]

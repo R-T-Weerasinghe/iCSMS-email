@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from api.settings.models import IntergratingEmailData, NotiSendingChannelsRecord
 from typing import Dict, Any
 from api.email_filtering_and_info_generation.emailIntegration import integrateEmail
@@ -8,6 +8,8 @@ from api.email_filtering_and_info_generation.routes import get_reading_emails_ar
 from api.settings.models import Trigger
 from fastapi.responses import JSONResponse
 import shutil
+
+from utils.auth import get_current_user
 
 
 
@@ -33,8 +35,8 @@ async def receive_email_data(email_data: Dict[str, Any]):
 
 # sentiment shift triggers form listener
 @router.post("/settings/receive_trigger_data")
-async def receive_trigger_data(trigger_data: Dict[str, Any]):
-        userID = trigger_data["userID"]
+async def receive_trigger_data(trigger_data: Dict[str, Any], user=Depends(get_current_user)):
+        username = user.username
         emailAccsToCheckSS =  trigger_data["emailAccsToCheckSS"]
         lowerNotify = trigger_data["lowerNotify"]
         lowerSS = trigger_data["lowerSS"]
@@ -44,12 +46,12 @@ async def receive_trigger_data(trigger_data: Dict[str, Any]):
         
         print("Received data:", trigger_data)
         
-        await updateTriggersTableSS(userID,emailAccsToCheckSS,lowerNotify,lowerSS,upperNotify,upperSS, is_checking_ss)
+        await updateTriggersTableSS(username,emailAccsToCheckSS,lowerNotify,lowerSS,upperNotify,upperSS, is_checking_ss)
         
         # if SS trigger is set for the first time then create a new noti_sending_channels document for that user
-        if not await check_user_id_notisending(userID):
+        if not await check_user_name_notisending(username):
             
-           new_noti_sending_email_rec = NotiSendingChannelsRecord(user_id=userID,is_dashboard_notifications=True, is_email_notifications = False, noti_sending_emails=[])
+           new_noti_sending_email_rec = NotiSendingChannelsRecord(user_name=username,is_dashboard_notifications=True, is_email_notifications = False, noti_sending_emails=[])
       
            await send_notificationchannels_record(new_noti_sending_email_rec)
         
@@ -62,7 +64,7 @@ async def receive_overdue_issue_trigger_data(overdue_issues_trigger_data: Dict[s
         await updateTriggersTableOverdueIssues(userID, accs_to_check_overdue_emails)
         
         # if overdue issue trigger is set for the first time then create a new noti_sending_channels document for that user
-        if not await check_user_id_notisending(userID):
+        if not await check_user_name_notisending(userID):
             
            new_noti_sending_email_rec = NotiSendingChannelsRecord(user_id=userID,is_dashboard_notifications=True, is_email_notifications = False, noti_sending_emails=[])
       
@@ -79,7 +81,7 @@ async def receive_criticality_trigger_data(criti_trigger_data: Dict[str, Any]):
         await updateTriggersTableCriticality(userID, accs_to_check_criticality)
         
         # if overdue issue trigger is set for the first time then create a new noti_sending_channels document for that user
-        if not await check_user_id_notisending(userID):
+        if not await check_user_name_notisending(userID):
             
            new_noti_sending_email_rec = NotiSendingChannelsRecord(user_id=userID,is_dashboard_notifications=True, is_email_notifications = False, noti_sending_emails=[])
       
@@ -101,7 +103,7 @@ async def receive_notification_channel_data(noti_channel_data: Dict[str, Any]):
         print(userID, dashboardChannelChecked, emailChannelChecked, notiSendingEmails)
         
         
-        if await check_user_id_notisending(userID):
+        if await check_user_name_notisending(userID):
           
             await update_noti_sending_emails(userID, dashboardChannelChecked, emailChannelChecked, notiSendingEmails)
         else:
@@ -144,8 +146,8 @@ async def receive_system_configurations_data(system_config_data: Dict[str, Any])
        
         
 # listeing to removal of noti sending emails        
-@router.post("/settings/remove_noti_sending_email/{user_id}")
-async def remove_noti_sending_email(user_id: int, noti_sending_emails_dict: Dict[str, Any]):
+@router.post("/settings/remove_noti_sending_email")
+async def remove_noti_sending_email(noti_sending_emails_dict: Dict[str, Any]):
     try:
         existing_record = collection_notificationSendingChannels.find_one({"user_id": user_id})
         noti_sending_emails=noti_sending_emails_dict["noti_sending_emails"]
@@ -211,7 +213,12 @@ async def get_data():
     data = await get_reading_emails_array()
     return JSONResponse(content=data)
 
-# send current SS checking emails of user 1
+# send user role data to the frontend
+@router.get("/settings/get_user_role_data")
+async def get_user_role_data():
+    return JSONResponse(content=data)
+
+# send current SS checking emails of user 
 @router.get("/settings/get_current_ss_checking_data")
 async def get_current_ss_checking_data():
     data = await get_data_of_ss_threshold(1)
@@ -232,7 +239,7 @@ async def get_current_overdue_issues_checking_emails():
 
 
 # send current notification channel data of user 1
-@router.get("/settings/get_noti_channels_data/1")
+@router.get("/settings/get_noti_channels_data")
 async def get_noti_channels_data():
     print("it came here")
     result = collection_notificationSendingChannels.find_one({"user_id": 1})
@@ -286,13 +293,13 @@ async def send_new_trigger(trigger: Trigger):
  
     
 # update a trigger for a sentiment shift triggers form change     
-@router.put("/update_triggers_ss/{user_id}")
-async def update_triggers_ss(user_id: int, accs_to_check_ss: list[str], lowerSS_notify: bool, ss_lower_bound: int, upperSS_notify: bool, ss_upper_bound: int, is_checking_ss:bool):
+
+async def update_triggers_ss(user_name: int, accs_to_check_ss: list[str], lowerSS_notify: bool, ss_lower_bound: int, upperSS_notify: bool, ss_upper_bound: int, is_checking_ss:bool):
     try:
         if lowerSS_notify and upperSS_notify:
             
             result = collection_trigers.update_one(
-                {"user_id": user_id},
+                {"user_name": user_name},
                 {"$set": {
                     "accs_to_check_ss": accs_to_check_ss,
                     "ss_lower_bound": ss_lower_bound,
@@ -305,7 +312,7 @@ async def update_triggers_ss(user_id: int, accs_to_check_ss: list[str], lowerSS_
             )
         elif lowerSS_notify:
              result = collection_trigers.update_one(
-                {"user_id": user_id},
+                {"user_name": user_name},
                 {"$set": {
                     "accs_to_check_ss": accs_to_check_ss,
                     "ss_lower_bound": ss_lower_bound,
@@ -314,7 +321,7 @@ async def update_triggers_ss(user_id: int, accs_to_check_ss: list[str], lowerSS_
             )
         elif upperSS_notify:
               result = collection_trigers.update_one(
-                {"user_id": user_id},
+                {"user_name": user_name},
                 {"$set": {
                     "accs_to_check_ss": accs_to_check_ss,
                     "ss_lower_bound": None,
@@ -323,7 +330,7 @@ async def update_triggers_ss(user_id: int, accs_to_check_ss: list[str], lowerSS_
             )
         else:
               result = collection_trigers.update_one(
-                {"user_id": user_id},
+                {"user_name": user_name},
                 {"$set": {
                     "accs_to_check_ss": [],
                     "ss_lower_bound": None,
@@ -341,11 +348,10 @@ async def update_triggers_ss(user_id: int, accs_to_check_ss: list[str], lowerSS_
 
 
 # update a trigger for a overdie issue triggers form change     
-@router.put("/update_triggers_overdue_issues/{user_id}")
-async def update_triggers_overdue_issues(user_id, accs_to_check_overdue_issues: list[str]):
+async def update_triggers_overdue_issues(user_name, accs_to_check_overdue_issues: list[str]):
     try:
         result = collection_trigers.update_one(
-                {"user_id": user_id},
+                {"user_name": user_name},
                 {"$set": {
                     "accs_to_check_overdue_issues": accs_to_check_overdue_issues
                  }}
@@ -359,11 +365,10 @@ async def update_triggers_overdue_issues(user_id, accs_to_check_overdue_issues: 
         raise HTTPException(status_code=500, detail=str(e))
     
 # update a trigger for a criticality triggers form change     
-@router.put("/update_triggers_criticality/{user_id}")
-async def update_triggers_criticality(user_id, accs_to_check_critical_emails: list[str]):
+async def update_triggers_criticality(user_name, accs_to_check_critical_emails: list[str]):
     try:
         result = collection_trigers.update_one(
-                {"user_id": user_id},
+                {"user_name": user_name},
                 {"$set": {
                     "accs_to_check_critical_emails": accs_to_check_critical_emails
                  }}
@@ -443,12 +448,12 @@ async def get_highest_trigger_id():
    
       
    
-# triggers collection user_id existence checker
-@router.get("/settings/check_user_id/{user_id}")
-async def check_user_id(user_id: int):
+# triggers collection user_name existence checker
+
+async def check_user_name(user_name: str):
     try:
         # Check if the user_id is present in the collection
-        user_document = collection_trigers.find_one({"user_id": user_id})
+        user_document = collection_trigers.find_one({"user_name": user_name})
         if user_document:
             return True
         else:
@@ -458,11 +463,10 @@ async def check_user_id(user_id: int):
     
     
 # NotisendingEmails collection user_id existence checker
-@router.get("/settings/check_user_id_notisending/{user_id}")
-async def check_user_id_notisending(user_id: int):
+async def check_user_name_notisending(user_name: str):
     try:
         # Check if the user_id is present in the collection
-        user_document = collection_notificationSendingChannels.find_one({"user_id": user_id})
+        user_document = collection_notificationSendingChannels.find_one({"user_name": user_name})
         if user_document:
             return True
         else:
@@ -514,52 +518,54 @@ async def get_accs_to_check_overdue_issues(user_id: int):
         return accs_to_check_overdue_emails
     else:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    
 
 # -----------------------------------------------------non-API functions----------------------------------------------------------------
 
 
 
-async def updateTriggersTableSS(userID,emailAccsToCheckSS,lowerNotify, lowerSS, upperNotify, upperSS, is_checking_ss):
+async def updateTriggersTableSS(username,emailAccsToCheckSS,lowerNotify, lowerSS, upperNotify, upperSS, is_checking_ss):
     
     
     
-    if await check_user_id(userID):
+    if await check_user_name(username):
         
-        await update_triggers_ss(userID,emailAccsToCheckSS,lowerNotify,lowerSS,upperNotify,upperSS, is_checking_ss)
+        await update_triggers_ss(username,emailAccsToCheckSS,lowerNotify,lowerSS,upperNotify,upperSS, is_checking_ss)
     else:    
         
         cuurentHighestTrigID = await get_highest_trigger_id()
         newtrigID = cuurentHighestTrigID+1
         
-        new_trigger = Trigger(trigger_id = newtrigID, user_id=userID, is_checking_ss=is_checking_ss, accs_to_check_ss= emailAccsToCheckSS, accs_to_check_overdue_issues = [], accs_to_check_critical_emails = [] , ss_lower_bound= lowerSS, ss_upper_bound=upperSS,  is_lower_checking = lowerNotify,  is_upper_checking = upperNotify)
+        new_trigger = Trigger(trigger_id = newtrigID, user_name=username, is_checking_ss=is_checking_ss, accs_to_check_ss= emailAccsToCheckSS, accs_to_check_overdue_issues = [], accs_to_check_critical_emails = [] , ss_lower_bound= lowerSS, ss_upper_bound=upperSS,  is_lower_checking = lowerNotify,  is_upper_checking = upperNotify)
         
         await send_new_trigger(new_trigger.dict())
 
 
 
-async def updateTriggersTableOverdueIssues(userID, emailAccsToCheckOverdueIssues: list[str]):
+async def updateTriggersTableOverdueIssues(username, emailAccsToCheckOverdueIssues: list[str]):
     
-     if await check_user_id(userID):
-         await update_triggers_overdue_issues(userID,emailAccsToCheckOverdueIssues)
+     if await check_user_name(username):
+         await update_triggers_overdue_issues(username,emailAccsToCheckOverdueIssues)
      else:
          cuurentHighestTrigID = await get_highest_trigger_id()
          newtrigID = cuurentHighestTrigID+1
          
-         new_trigger = Trigger(trigger_id = newtrigID, user_id=userID, accs_to_check_ss= [], accs_to_check_overdue_issues= emailAccsToCheckOverdueIssues, accs_to_check_critical_emails=[], ss_lower_bound= None, ss_upper_bound=None)
+         new_trigger = Trigger(trigger_id = newtrigID, user_name=username, accs_to_check_ss= [], accs_to_check_overdue_issues= emailAccsToCheckOverdueIssues, accs_to_check_critical_emails=[], ss_lower_bound= None, ss_upper_bound=None)
          
          await send_new_trigger(new_trigger.dict())
          
         
 
-async def updateTriggersTableCriticality(userID, emailAccsToCheckCriticality):
+async def updateTriggersTableCriticality(username, emailAccsToCheckCriticality):
     
-     if await check_user_id(userID):
-         await update_triggers_criticality(userID,emailAccsToCheckCriticality)
+     if await check_user_name(username):
+         await update_triggers_criticality(username,emailAccsToCheckCriticality)
      else:
          cuurentHighestTrigID = await get_highest_trigger_id()
          newtrigID = cuurentHighestTrigID+1
          
-         new_trigger = Trigger(trigger_id = newtrigID, user_id=userID, accs_to_check_ss= [], accs_to_check_overdue_issues=[], accs_to_check_critical_emails = emailAccsToCheckCriticality, ss_lower_bound= None, ss_upper_bound=None)
+         new_trigger = Trigger(trigger_id = newtrigID, user_name=username, accs_to_check_ss= [], accs_to_check_overdue_issues=[], accs_to_check_critical_emails = emailAccsToCheckCriticality, ss_lower_bound= None, ss_upper_bound=None)
          
          await send_new_trigger(new_trigger.dict())
          
