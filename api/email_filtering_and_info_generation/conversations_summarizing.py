@@ -1,6 +1,6 @@
 
 from langchain_google_genai import ChatGoogleGenerativeAI
-from api.email_filtering_and_info_generation.routes import send_convo_summary, update_summary
+from api.email_filtering_and_info_generation.services import send_convo_summary, update_summary
  
 import google.generativeai as genai
 import os

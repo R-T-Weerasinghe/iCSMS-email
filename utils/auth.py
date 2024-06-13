@@ -4,7 +4,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from pydantic import BaseModel
 
-from app.config.config import Config
+class Config:
+    cognito_region = 'ap-south-1'
+    cognito_pool_id = 'ap-south-1_YEH0sqfmB'
+    cognito_app_client_id = '4nql0ttol3en0nir4d56ctdc6i'
+    s3_bucket_name = 'cognito-user-profile-image'
 
 
 class TokenPayload(BaseModel):
@@ -49,7 +53,7 @@ def decode_jwt(token: str):
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
     payload = decode_jwt(token)
-    print(payload)
+    # print(payload)
     return TokenPayload(
         sub=payload['sub'],
         roles=payload.get('cognito:groups', []),

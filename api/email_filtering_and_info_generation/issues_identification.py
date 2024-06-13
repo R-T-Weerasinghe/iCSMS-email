@@ -4,7 +4,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import os
 
-from api.email_filtering_and_info_generation.routes import send_inquiry, send_issue, send_suggestion, update_inquiry_status, update_issue_status
+from api.email_filtering_and_info_generation.services import send_inquiry, send_issue, send_suggestion, update_inquiry_status, update_issue_status
 from api.email_filtering_and_info_generation.configurations.database import collection_conversations, collection_issues,collection_inquiries
 load_dotenv()
 google_api_key = os.getenv("GOOGLE_API_KEY")

@@ -4,7 +4,7 @@ from api.settings.models import IntergratingEmailData, NotiSendingChannelsRecord
 from typing import Dict, Any
 from api.email_filtering_and_info_generation.emailIntegration import integrateEmail
 from api.email_filtering_and_info_generation.configurations.database import  collection_suggestions,collection_readingEmailAccounts, collection_configurations
-from api.email_filtering_and_info_generation.routes import get_reading_emails_array
+from api.email_filtering_and_info_generation.services import get_reading_emails_array
 from api.settings.models import Trigger
 from fastapi.responses import JSONResponse
 import shutil

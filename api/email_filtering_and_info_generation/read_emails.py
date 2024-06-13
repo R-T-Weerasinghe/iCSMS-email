@@ -21,8 +21,8 @@ from api.email_filtering_and_info_generation.suggestions_identification import i
 
 
 
-from api.email_filtering_and_info_generation.routes import get_all_reading_accounts, router, update_authorization_uri
-from api.email_filtering_and_info_generation.routes import send_email_message,get_reading_emails_array
+from api.email_filtering_and_info_generation.services import get_all_reading_accounts, router, update_authorization_uri
+from api.email_filtering_and_info_generation.services import send_email_message,get_reading_emails_array
 
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
