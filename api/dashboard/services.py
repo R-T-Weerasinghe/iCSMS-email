@@ -1,4 +1,6 @@
+from typing import List
 from fastapi import HTTPException
+from api.dashboard.models import BestPerformingEmailAccResponse, EmailAccEfficiencyResponse, GaugeChartResponse, InquiriesByEfficiencyEffectivenessResponse, IssueInquiryFreqByProdcutsResponse, IssueInquiryFreqByTypeResponse, IssuesByEfficiencyEffectivenessResponse, OngoingAndClosedStatsResponse, OverallyEfficiencyEffectivenessPecentagesResponse, OverdueIssuesResponse, SentimentsByTimeResponse, SentimentsByTopicResponse, SentimentsDistributionByTimeResponse, GetCurrentOverallSentimentProgress, StatCardSingleResponse, WordCloudSingleResponse
 from api.email_filtering_and_info_generation.configurations.database import collection_notificationSendingChannels,collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
 from datetime import datetime, timedelta, timezone
 import random
@@ -46,11 +48,15 @@ async def get_current_overall_sentiments( intervalIndays: int):
         
         print()
         
-        result =  {"positive_percentage": positive_percentage, "neutral_percentage": neutral_percentage, "negative_percentage": negative_perecentage}
+        result =  GetCurrentOverallSentimentProgress(positive_percentage= positive_percentage, 
+                                                          neutral_percentage= neutral_percentage, 
+                                                          negative_percentage= negative_perecentage)
         
         return result
     else:
-        return {"positive_percentage": 0, "neutral_percentage": 0, "negative_percentage": 0}
+        return GetCurrentOverallSentimentProgress(positive_percentage= 0, 
+                                                          neutral_percentage= 0, 
+                                                          negative_percentage= 0)
             
     
     
@@ -111,7 +117,7 @@ async def get_data_for_word_cloud(intervalIndays: int):
 
     
     # Convert the dictionary to a list of dictionaries with topic and frequency
-    result = [{"topic": topic, "frequency": frequency, "color": generateRandomColor()} for topic, frequency in topic_frequencies.items()]
+    result = [WordCloudSingleResponse(topic= topic, frequency= frequency, color= generateRandomColor()) for topic, frequency in topic_frequencies.items()]
     
     return result
     
@@ -124,7 +130,7 @@ async def get_data_for_stat_cards(intervalIndays: int):
     n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
     
     evenCounter = 0
-    result = []
+    result: List[StatCardSingleResponse] = []
     for recepient_email in recepient_emails:
         query = {"recipient": recepient_email["address"]}
         cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago}}, query)
@@ -160,7 +166,11 @@ async def get_data_for_stat_cards(intervalIndays: int):
             else:
                 imgPath = "./email/mail_red.png"
                 
-            result.append({'title':total_emails, 'sub_title':"Total Emails", "header":recepient_email["nickname"], "sentiment": sentiment, "imgPath":imgPath})
+            result.append(StatCardSingleResponse(title= total_emails, 
+                                                    sub_title= "Total Emails", 
+                                                    header= recepient_email["nickname"], 
+                                                    sentiment= sentiment, 
+                                                    imgPath= imgPath))
 
     return result
 
@@ -208,7 +218,9 @@ async def get_data_for_sentiments_by_topic(intervalIndays: int):
        
             
             
-    result = {"sbtChartLabels":found_products, "sbtChartColors": colors, "sbtChartValues": overall_sentiment_scores}
+    result = SentimentsByTopicResponse(sbtChartLabels=found_products, 
+                                          sbtChartColors= colors, 
+                                          sbtChartValues= overall_sentiment_scores)
     
     return result
 
@@ -298,7 +310,10 @@ async def get_data_for_sentiments_by_time(intervalIndays: int):
             
         delayday -= 1
     
-    result = {"labels": labels, "positive_values":positive_values, "neutral_values":neutral_values, "negative_values":negative_values}
+    result = SentimentsByTimeResponse(labels= labels, 
+              positive_values= positive_values, 
+              neutral_values= neutral_values, 
+              negative_values= negative_values)
     
     return result
 
@@ -378,10 +393,15 @@ async def get_data_for_sentiments_distribution_of_topics(intervalIndays: int):
             neutral_values_freq.append(0)
             negative_values_freq.append(0)
             
-    result = {"labels_freq": labels_freq, "positive_values_freq":positive_values_freq, 
-              "neutral_values_freq":neutral_values_freq, "negative_values_freq":negative_values_freq,
-              "labels_mean":labels_mean, "positive_values_mean":positive_values_mean, 
-              "neutral_values_mean":neutral_values_mean, "negative_values_mean":negative_values_mean}
+    result = SentimentsDistributionByTimeResponse(
+              labels_freq= labels_freq, 
+              positive_values_freq = positive_values_freq, 
+              neutral_values_freq = neutral_values_freq, 
+              negative_values_freq = negative_values_freq,
+              labels_mean = labels_mean, 
+              positive_values_mean = positive_values_mean, 
+              neutral_values_mean = neutral_values_mean, 
+              negative_values_mean = negative_values_mean)
 
     return result
 
@@ -408,13 +428,13 @@ async def get_data_value_for_gauge_chart(intervalIndays: int):
     if no_of_emails>0:
         avg_sentiment_score = round(total_sentiment_score/no_of_emails,3)
         
-        result = {"value": avg_sentiment_score}
+        result = GaugeChartResponse(value= avg_sentiment_score)
         print("gauge chart value",result)
        
     
     else:
         
-        result = {"value": 0}
+        result = GaugeChartResponse(value= 0)
         
     return result
 
@@ -497,7 +517,12 @@ async def get_data_for_issue_and_inquiry_frequency_by_products(intervalIndays: i
     min_index = summation_result.index(min_value)
     max_index = summation_result.index(max_value)
     
-    result = {"product_labels":product_labels, "issue_freq":issue_freq, "inquiry_freq":inquiry_freq, "best_product":product_labels[max_index], "worst_product":product_labels[min_index]}
+    result = IssueInquiryFreqByProdcutsResponse(
+              product_labels = product_labels, 
+              issue_freq = issue_freq, 
+              inquiry_freq = inquiry_freq, 
+              best_product = product_labels[max_index], 
+              worst_product = product_labels[min_index])
     
     return result
 
@@ -544,7 +569,11 @@ async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalIndays:
         
         inquiry_type_frequencies.append(count_inquiries)
     
-    result = {"issue_type_labels":issue_types, "issue_type_frequencies":issue_type_frequencies, "inquiry_type_labels":inquiry_types, "inquiry_type_frequencies":inquiry_type_frequencies }
+    result = IssueInquiryFreqByTypeResponse(
+               issue_type_labels=issue_types, 
+              issue_type_frequencies = issue_type_frequencies, 
+              inquiry_type_labels = inquiry_types, 
+              inquiry_type_frequencies = inquiry_type_frequencies )
     return result
 
 
@@ -578,8 +607,11 @@ async def get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalI
          
          efficiency_frequencies.append(count_issues)
     
-    result = {"effectiveness_categories": effectiveness_categories, "effectiveness_frequencies":effectiveness_frequencies,
-              "efficiency_categories":efficiency_categories, "efficiency_frequencies":efficiency_frequencies}
+    result = IssuesByEfficiencyEffectivenessResponse(
+              effectiveness_categories = effectiveness_categories, 
+              effectiveness_frequencies = effectiveness_frequencies,
+              efficiency_categories = efficiency_categories, 
+              efficiency_frequencies = efficiency_frequencies)
     
     return result
     
@@ -613,8 +645,11 @@ async def get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(interva
          
          efficiency_frequencies.append(count_inquiries)
     
-    result = {"effectiveness_categories": effectiveness_categories, "effectiveness_frequencies":effectiveness_frequencies,
-              "efficiency_categories":efficiency_categories, "efficiency_frequencies":efficiency_frequencies}
+    result = InquiriesByEfficiencyEffectivenessResponse(
+              effectiveness_categories = effectiveness_categories, 
+              effectiveness_frequencies = effectiveness_frequencies,
+              efficiency_categories = efficiency_categories, 
+              efficiency_frequencies = efficiency_frequencies)
     
     return result    
     
@@ -688,8 +723,12 @@ async def get_data_for_overall_efficiency_and_effectiveness_percentages(interval
         effectiveness_percentages = [0,0,0,0]
         efficiency_percentages = [0,0,0,0]
         
-    result = {"efficiency_categories":efficiency_categories, "efficiency_percentages":efficiency_percentages,
-              "effectiveness_categories":effectiveness_categories, "effectiveness_percentages":effectiveness_percentages}
+    result = OverallyEfficiencyEffectivenessPecentagesResponse(
+              effectiveness_categories = effectiveness_categories, 
+              effectiveness_percentages = effectiveness_percentages,
+              efficiency_categories = efficiency_categories, 
+              efficiency_percentages = efficiency_percentages
+              )
     
     return result  
     
@@ -724,21 +763,21 @@ async def get_data_for_ongoing_and_closed_stats(intervalIndays: int):
     
     if total_count>0:
         
-        ongoing_percentage = (total_ongoing_count/total_count)*100
-        closed_percentage = (total_closed_count/total_count)*100
+        ongoing_percentage: float = (total_ongoing_count/total_count)*100
+        closed_percentage: float= (total_closed_count/total_count)*100
     else:
-        ongoing_percentage = 0
-        closed_percentage = 0
+        ongoing_percentage: float = 0
+        closed_percentage: float = 0
         
     #--------------------- the rest is provided in case if it's needed, when I upgrade the front end to filter the donut graph by issues and inquiry.--------------------------
     
     total_issues_count = count_total_closed_issues + count_total_ongoing_issues
     total_inquiries_count = count_total_closed_inquiries + count_total_ongoing_inquiries
     
-    ongoing_percentage_inquiry = 0
-    closed_percentage_inquiry = 0
-    ongoing_percentage_issues = 0
-    closed_percentage_issues = 0
+    ongoing_percentage_inquiry: float = 0
+    closed_percentage_inquiry: float = 0
+    ongoing_percentage_issues: float = 0
+    closed_percentage_issues: float = 0
     
     if total_issues_count>0:
         ongoing_percentage_issues = (count_total_ongoing_issues/total_issues_count)*100
@@ -749,11 +788,17 @@ async def get_data_for_ongoing_and_closed_stats(intervalIndays: int):
         closed_percentage_inquiry = (count_total_closed_inquiries/total_inquiries_count)*100
     
     #---------------------------------------------------------------------------------------------------------------------------------------------------------------------------    
-    result = {"count_total_closed_issues":count_total_closed_issues, "count_total_ongoing_issues":count_total_ongoing_issues,
-              "count_total_closed_inquiries":count_total_closed_inquiries, "count_total_ongoing_inquiries":count_total_ongoing_inquiries,
-              "ongoing_percentage":ongoing_percentage, "closed_percentage":closed_percentage,
-              "ongoing_percentage_issues":ongoing_percentage_issues, "closed_percentage_issues":closed_percentage_issues,
-              "ongoing_percentage_inquiry":ongoing_percentage_inquiry, "closed_percentage_inquiry":closed_percentage_inquiry}
+    result = OngoingAndClosedStatsResponse(
+              count_total_closed_issues = count_total_closed_issues, 
+              count_total_ongoing_issues = count_total_ongoing_issues,
+              count_total_closed_inquiries = count_total_closed_inquiries, 
+              count_total_ongoing_inquiries = count_total_ongoing_inquiries,
+              ongoing_percentage = ongoing_percentage, 
+              closed_percentage = closed_percentage,
+              ongoing_percentage_issues = ongoing_percentage_issues, 
+              closed_percentage_issues = closed_percentage_issues,
+              ongoing_percentage_inquiry = ongoing_percentage_inquiry, 
+              closed_percentage_inquiry = closed_percentage_inquiry)
     
     return result   
     
@@ -826,7 +871,7 @@ async def get_data_for_best_performing_email_acc(intervalIndays: int):
         
     best_performing_email_acc = max(scores_for_emails, key=scores_for_emails.get)
     
-    result = {"best_performing_email_acc":best_performing_email_acc}
+    result = BestPerformingEmailAccResponse(best_performing_email_acc = best_performing_email_acc)
     
     return result   
     
@@ -838,10 +883,10 @@ async def get_data_for_efficiency_by_email_acc(intervalIndays: int):
     
     all_reading_email_accs = [doc["address"] for doc in documents]
     
-    highly_eff_percentages = []
-    mod_eff_percentages = []
-    less_eff_percentages = []
-    ineff_percentages = []
+    highly_eff_percentages: List[float] = []
+    mod_eff_percentages: List[float] = []
+    less_eff_percentages: List[float] = []
+    ineff_percentages: List[float] = []
     
     for reading_email_acc in all_reading_email_accs:
         
@@ -861,16 +906,16 @@ async def get_data_for_efficiency_by_email_acc(intervalIndays: int):
         total_closed = total_closed_issues+total_closed_inquiries
         
         if total_closed>0:
-            highly_eff_percentage = ((no_of_highly_eff_issues+no_of_highly_eff_inquiries)/total_closed)*100
+            highly_eff_percentage = (float)((no_of_highly_eff_issues+no_of_highly_eff_inquiries)/total_closed)*100
             highly_eff_percentages.append(highly_eff_percentage)
             
-            mod_eff_percentage = ((no_of_mod_eff_issues+no_of_mod_eff_inquiries)/total_closed)*100
+            mod_eff_percentage = (float)((no_of_mod_eff_issues+no_of_mod_eff_inquiries)/total_closed)*100
             mod_eff_percentages.append(mod_eff_percentage)
             
-            less_eff_percentage = ((no_of_less_eff_issues+no_of_less_eff_inquiries)/total_closed)*100
+            less_eff_percentage = (float)((no_of_less_eff_issues+no_of_less_eff_inquiries)/total_closed)*100
             less_eff_percentages.append(less_eff_percentage)
             
-            ineff_percentage = ((no_of_ineff_issues+no_of_ineff_inquiries)/total_closed)*100
+            ineff_percentage =(float)((no_of_ineff_issues+no_of_ineff_inquiries)/total_closed)*100
             ineff_percentages.append(ineff_percentage)
         else:
             highly_eff_percentages.append(0)
@@ -878,9 +923,12 @@ async def get_data_for_efficiency_by_email_acc(intervalIndays: int):
             less_eff_percentages.append(0)
             ineff_percentages.append(0)
     
-    result = {"all_reading_email_accs":all_reading_email_accs, "ineff_percentages":ineff_percentages, 
-              "less_eff_percentages":less_eff_percentages, "mod_eff_percentages":mod_eff_percentages, 
-              "highly_eff_percentages":highly_eff_percentages}
+    result = EmailAccEfficiencyResponse(
+              all_reading_email_accs = all_reading_email_accs, 
+              ineff_percentages = ineff_percentages, 
+              less_eff_percentages = less_eff_percentages, 
+              mod_eff_percentages = mod_eff_percentages, 
+              highly_eff_percentages = highly_eff_percentages)
     
     return result   
 
@@ -916,9 +964,11 @@ async def get_data_for_overdue_issues(intervalIndays: int):
         "status": "ongoing"
         }) 
         
-    result = {"sum_overdue_issues":sum_overdue_issues, "all reading_email_accs": all_reading_email_accs,
-              "overdue_issues_count_per_each_email":overdue_issue_count_of_each_email, 
-              "total_ongoing_issues":total_ongoing_issues}
+    result = OverdueIssuesResponse(
+              sum_overdue_issues = sum_overdue_issues, 
+              all_reading_email_accs = all_reading_email_accs,
+              overdue_issues_count_per_each_email = overdue_issue_count_of_each_email, 
+              total_ongoing_issues = total_ongoing_issues)
     
     
     return result
