@@ -1,8 +1,7 @@
 
-from fastapi import APIRouter, Depends, HTTPException
-from api.settings.models import DeleteNotiSendingEmail, DeleteReadingEmail, EmailAcc, EmailAccWithNickName, IntergratingEmailData, NotiSendingChannelsRecord, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, SSShiftData, SendSystemConfigData, UserRoleResponse
+from fastapi import APIRouter, Depends, HTTPException, Query
+from api.settings.models import DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, IntergratingEmailData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, SSShiftData, SendSystemConfigData, UserRoleResponse
 from typing import Dict, Any, List
-from api.email_filtering_and_info_generation.emailIntegration import integrateEmail
 from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
 from api.email_filtering_and_info_generation.services import get_reading_emails_array
 from api.settings.models import Trigger
@@ -29,7 +28,20 @@ async def receive_email_data(email_data: PostNewIntegratingEmail):
     nick_name = email_data.nickName
     client_secret=email_data.clientSecret
     
-    await integrateEmail(email_address,nick_name, client_secret)
+    await services.integrateEmail(email_address,nick_name, client_secret)
+
+    return {"message": "Email data received successfully"}
+
+# listen to rading email account edits
+@router.post("/settings/receive_email_edit_data")
+async def receive_email_edit_data(email_data: PostEditingEmail):
+
+    old_email_address = email_data.oldEmailAddress
+    email_address = email_data.editedEmailAddress
+    nick_name = email_data.nickName
+    client_secret=email_data.clientSecret
+    
+    await services.updateEmail(old_email_address,email_address,nick_name, client_secret)
 
     return {"message": "Email data received successfully"}
 
@@ -38,7 +50,7 @@ async def receive_email_data(email_data: PostNewIntegratingEmail):
 @router.post("/settings/receive_trigger_data")
 async def receive_trigger_data(trigger_data:SSShiftData, user=Depends(get_current_user)):
         username = user.username
-        emailAccsToCheckSS =  trigger_data.accs_to_check_ss
+        emailAccsToCheckSS =  [email.address for email in trigger_data.accs_to_check_ss]
         lowerNotify = trigger_data.is_lower_checking
         lowerSS = trigger_data.ss_lower_bound
         upperNotify = trigger_data.is_upper_checking
@@ -62,6 +74,7 @@ async def receive_overdue_issue_trigger_data(overdue_issues_trigger_data: Postin
         username = user.username 
         accs_to_check_overdue_emails =  overdue_issues_trigger_data.accs_to_check_overdue_emails
         
+        
         await services.updateTriggersTableOverdueIssues(username, accs_to_check_overdue_emails)
         
         # if overdue issue trigger is set for the first time then create a new noti_sending_channels document for that user
@@ -79,6 +92,7 @@ async def receive_criticality_trigger_data(criti_trigger_data: PostingCriticalit
         username = user.username 
         accs_to_check_criticality =  criti_trigger_data.accs_to_check_criticality
         
+        print(criti_trigger_data)
         await services.updateTriggersTableCriticality(username, accs_to_check_criticality)
         
         # if overdue issue trigger is set for the first time then create a new noti_sending_channels document for that user
@@ -124,7 +138,7 @@ async def receive_system_configurations_data(system_config_data: SendSystemConfi
         # if the config doc already exists
         if result:
             # combined_products_list = newProducts + result["products"]
-            update_result = await collection_configurations.update_one(
+            update_result = collection_configurations.update_one(
             {"id": 1},
             {"$set": {"overdue_margin_time": overdue_margin_time}}
                 )
@@ -138,6 +152,7 @@ async def receive_system_configurations_data(system_config_data: SendSystemConfi
                     return {"message": "new config document inserted successfully", "inserted_id": str(result.inserted_id)}
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
+        return {"message": "new config document inserted successfully"}
         
        
         
@@ -209,7 +224,14 @@ async def remove_reading_email(removing_email_dict: DeleteReadingEmail):
 async def get_data():
     reading_email_acc_model_data_array = await get_reading_emails_array()
     data = [EmailAccWithNickName(address=item["address"], nickname=item["nickname"]) for item in reading_email_acc_model_data_array]
-    return JSONResponse(content=data)
+    return data
+
+# send editing email data to frontend   
+@router.get("/settings/get_editing_email_data", response_model=EditingEmailData)
+async def get_editing_email_data(selectedEmail: str = Query(...)):
+    data: EditingEmailData = await services.get_editing_email_data(selectedEmail)
+    return data
+
 
 # send user role data to the frontend
 @router.get("/settings/get_user_role_data", response_model=UserRoleResponse)
@@ -221,16 +243,17 @@ async def get_user_role_data(user=Depends(get_current_user)):
     else:
         data = UserRoleResponse(isAdmin=False)
         
-    return JSONResponse(content=data)
+    return data
 
 # send current SS checking emails of user 
 @router.get("/settings/get_current_ss_checking_data", response_model=SSShiftData)
 async def get_current_ss_checking_data(user=Depends(get_current_user)):
     
     username = user.username 
+    print("USERNAME--------------------------------------------------------->", username)
     data = await services.get_data_of_ss_threshold(username)
    
-    return JSONResponse(content=data)
+    return data
 
 # send current criticality checking emails of user 1
 @router.get("/settings/get_current_criticality_checking_emails", response_model=List[EmailAcc])
@@ -238,7 +261,7 @@ async def get_criticalty_checking_emails(user=Depends(get_current_user)):
     username = user.username 
     addresses_string_array = await services.get_accs_to_check_criticality(username)
     data = [EmailAcc(address=email) for email in addresses_string_array]
-    return JSONResponse(content=data)
+    return data
 
 # send current criticality checking emails of user 
 @router.get("/settings/get_current_overdue_issues_checking_emails", response_model=List[EmailAcc])
@@ -246,7 +269,7 @@ async def get_current_overdue_issues_checking_emails(user=Depends(get_current_us
     username = user.username 
     addresses_string_array = await services.get_accs_to_check_overdue_issues(username)
     data = [EmailAcc(address=email) for email in addresses_string_array]
-    return JSONResponse(content=data)
+    return data
 
 
 # send current notification channel data of user 
@@ -261,7 +284,7 @@ async def get_noti_channels_data(user=Depends(get_current_user)):
         is_email_notifications =result['is_email_notifications'],
         noti_sending_emails = [EmailAcc(address=email) for email in result['noti_sending_emails']]
         )
-        return JSONResponse(content=formatted_result)
+        return formatted_result
     else:
         formatted_result = NotiSendingChannelsRecord(
         user_name = "",
@@ -269,7 +292,7 @@ async def get_noti_channels_data(user=Depends(get_current_user)):
         is_email_notifications= False,
         noti_sending_emails= []
          )
-    return JSONResponse(content=formatted_result)
+    return formatted_result
     
 # send system configuration data of company
 @router.get("/settings/get_system_configuration_data", response_model=SendSystemConfigData)
@@ -282,6 +305,6 @@ async def get_system_configuration_data():
     else:
         formatted_result = SendSystemConfigData(overdue_margin_time=14)
     
-    return JSONResponse(content=formatted_result)
+    return formatted_result
         
     

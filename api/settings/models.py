@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Union
 
 
 # Define a Pydantic model for the data sent from Angular
@@ -23,8 +23,8 @@ class Trigger(BaseModel):
      accs_to_check_ss:List[str]
      accs_to_check_overdue_issues:List[str]
      accs_to_check_critical_emails:List[str]
-     ss_lower_bound:int
-     ss_upper_bound:int
+     ss_lower_bound:Union[float, None]
+     ss_upper_bound:Union[float, None]
      is_lower_checking:bool
      is_upper_checking:bool
 
@@ -42,35 +42,47 @@ class  SendSystemConfigData(BaseModel):
 
     
 class  SSShiftData(BaseModel):
-        accs_to_check_ss = List[EmailAcc]
-        ss_lower_bound = float
-        ss_upper_bound = float
-        is_checking_ss = bool
-        is_lower_checking = bool
-        is_upper_checking = bool
+        accs_to_check_ss : List[EmailAcc]
+        ss_lower_bound : Union[float, None]
+        ss_upper_bound : Union[float, None]
+        is_checking_ss : bool
+        is_lower_checking : bool
+        is_upper_checking : bool
+        
+class EditingEmailData(BaseModel):
+  emailAddress: str
+  nickName: str
+  clientSecret:str
         
 class UserRoleResponse(BaseModel):
         isAdmin:bool
         
-class DeleteNotiSendingEmail:
+class DeleteNotiSendingEmail(BaseModel):
   noti_sending_emails: List[str]
   
-class DeleteReadingEmail:
+class DeleteReadingEmail(BaseModel):
   removing_email: str
   
-class PostNewIntegratingEmail:
+class PostNewIntegratingEmail(BaseModel):
   emailAddress: str
   nickName: str
   clientSecret:str
+  
+class  PostEditingEmail(BaseModel):
+  oldEmailAddress: str
+  editedEmailAddress: str
+  nickName: str
+  clientSecret:str
 
-class PostingNotiSendingChannelsRecord:
+
+class PostingNotiSendingChannelsRecord(BaseModel):
   is_dashboard_notifications: bool
   is_email_notifications: bool
   noti_sending_emails:List[str]
   
-class PostingCriticalityData:
+class PostingCriticalityData(BaseModel):
   accs_to_check_criticality: List[str]
   
   
-class PostingOverdueIssuesData:
+class PostingOverdueIssuesData(BaseModel):
   accs_to_check_overdue_emails: List[str]

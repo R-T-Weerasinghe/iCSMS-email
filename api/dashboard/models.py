@@ -1,6 +1,6 @@
 
     
-from typing import List
+from typing import List, Union
 from pydantic import BaseModel
 
 
@@ -29,19 +29,19 @@ class SentimentsByTopicResponse(BaseModel):
     
 class SentimentsByTimeResponse(BaseModel):
     labels: List[str]
-    positive_values: List[float]
-    neutral_values: List[float]
-    negative_values: List[float]
+    positive_values: List[Union[float, None]]
+    neutral_values: List[Union[float, None]]
+    negative_values: List[Union[float, None]]
     
 class SentimentsDistributionByTimeResponse(BaseModel):   
     labels_freq: List[str]
-    positive_values_freq: List[int]
-    neutral_values_freq: List[int]
-    negative_values_freq: List[int]
+    positive_values_freq: List[Union[int, None]]
+    neutral_values_freq: List[Union[int, None]]
+    negative_values_freq: List[Union[int, None]]
     labels_mean: List[str]
-    positive_values_mean: List[float]
-    neutral_values_mean: List[float]
-    negative_values_mean: List[float]
+    positive_values_mean: List[Union[float, None]]
+    neutral_values_mean: List[Union[float, None]]
+    negative_values_mean: List[Union[float, None]]
     
 class GaugeChartResponse(BaseModel):
     value: float
@@ -110,7 +110,7 @@ class OverdueIssuesResponse(BaseModel):
     overdue_issues_count_per_each_email: List[int] 
     total_ongoing_issues: int  
     
-    
+
     
     
     

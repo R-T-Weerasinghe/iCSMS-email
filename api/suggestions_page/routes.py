@@ -9,7 +9,7 @@ from api.settings.models import Trigger
 from fastapi.responses import JSONResponse
 import shutil
 
-from api.suggestions_page.models import SuggestionsData
+from api.suggestions_page.models import ProductsResponse, RecepientsResponse, SuggestionsData
 
 
 
@@ -67,7 +67,7 @@ def get_filtered_suggestions(intervalIndays: int, productSelected: str, recipien
     result =  suggestions_dict_list 
     return JSONResponse(content=result)    
 
-@router.get("/suggestion-filtering/get_all_recepients")
+@router.get("/suggestion-filtering/get_all_recepients", response_model=RecepientsResponse)
 async def get_all_recepients():
     
     recepients = []
@@ -76,10 +76,10 @@ async def get_all_recepients():
     for doc in cursor:
         recepients.append(doc["address"])
     
-    result = {"recepients", recepients}
-    return JSONResponse(content=result)  
+    result = RecepientsResponse(recepients=recepients)
+    return result  
 
-@router.get("/suggestion-filtering/get_all_products")
+@router.get("/suggestion-filtering/get_all_products", response_model=ProductsResponse)
 async def get_all_products():
     
     products=[]
@@ -89,8 +89,8 @@ async def get_all_products():
     if cursor_doc:
         products = cursor_doc.get("products", [])
     
-    result = {"products":products}
-    return JSONResponse(content=result) 
+    result = ProductsResponse(products = products)
+    return result
     
     
     

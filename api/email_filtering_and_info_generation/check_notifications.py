@@ -275,7 +275,7 @@ async def check_overdue_emails():
                     
                         # setting up subject and messages
                             
-                            subject = f"Overdue Issue recorded from {new_overdue_issue["recepient_email"]}"
+                            subject = f"""Overdue Issue recorded from {new_overdue_issue["recepient_email"]}"""
                             message = f"""The following issue has overdued. It has been going over for more than {overdue_margin_time} days.\n
                             The issue:\n
                             {new_overdue_issue["issue_summary"]}"""

@@ -96,10 +96,10 @@ async def send_convo_summary(convo_summary: Convo_summary):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def update_summary(thread_id: str, new_summary: str):
+async def update_summary(thread_id: str, new_summary: str, last_updated_time:datetime):
     result =  collection_conversations.update_one(
         {"thread_id": thread_id},
-        {"$set": {"summary": new_summary}}
+        {"$set": {"summary": new_summary, "last_updated_time": last_updated_time}}
     )
     
     if result.matched_count == 0:

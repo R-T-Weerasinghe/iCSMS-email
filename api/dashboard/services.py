@@ -63,7 +63,7 @@ async def get_current_overall_sentiments( intervalIndays: int):
 async def get_data_for_topic_cloud(intervalIndays: int):
     
     # change this so to get the topics list from the DB
-    products = getProductsList()
+    products = await getProductsList()
     
     n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
 
@@ -94,7 +94,7 @@ async def get_data_for_topic_cloud(intervalIndays: int):
 async def get_data_for_word_cloud(intervalIndays: int):
     
     # change this so to get the topics list from the DB
-    topics = getProductsList()
+    topics = await getProductsList()
     
     n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
 
@@ -125,7 +125,7 @@ async def get_data_for_word_cloud(intervalIndays: int):
 
 async def get_data_for_stat_cards(intervalIndays: int):
     
-    recepient_emails = get_reading_emails_array()
+    recepient_emails = await get_reading_emails_array()
     
     n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
     
@@ -177,7 +177,7 @@ async def get_data_for_stat_cards(intervalIndays: int):
 
 async def get_data_for_sentiments_by_topic(intervalIndays: int):
     
-    products = getProductsList()
+    products = await getProductsList()
     
     n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
     
@@ -319,7 +319,7 @@ async def get_data_for_sentiments_by_time(intervalIndays: int):
 
 async def get_data_for_sentiments_distribution_of_topics(intervalIndays: int):
     
-    products = getProductsList()
+    products = await getProductsList()
     
     n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
     
@@ -441,7 +441,7 @@ async def get_data_value_for_gauge_chart(intervalIndays: int):
 
 async def get_data_for_issue_and_inquiry_frequency_by_products(intervalIndays: int):
     
-    products = getProductsList()
+    products = await getProductsList()
     n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
     
     product_labels=[]
@@ -537,10 +537,11 @@ async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalIndays:
         
     
     n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
-    
+    print("intervalIndays", intervalIndays)
  
     issue_type_frequencies = []
     inquiry_type_frequencies = []
+    
     
     for issue_type in issue_types:
         
@@ -549,6 +550,7 @@ async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalIndays:
             "start_time": {"$gte": n_days_ago},
             "issue_type": issue_type
         })
+  
         
         issue_type_frequencies.append(count_issues)
     
@@ -566,6 +568,8 @@ async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalIndays:
             "start_time": {"$gte": n_days_ago},
             "inquiry_type": inquiry_type
         })
+        
+        print("inquiry type: ", inquiry_type, "  count: ", count_inquiries)
         
         inquiry_type_frequencies.append(count_inquiries)
     
@@ -923,7 +927,7 @@ async def get_data_for_efficiency_by_email_acc(intervalIndays: int):
             less_eff_percentages.append(0)
             ineff_percentages.append(0)
     
-    result = EmailAccEfficiencyResponse(
+    result  = EmailAccEfficiencyResponse(
               all_reading_email_accs = all_reading_email_accs, 
               ineff_percentages = ineff_percentages, 
               less_eff_percentages = less_eff_percentages, 

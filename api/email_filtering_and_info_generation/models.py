@@ -20,6 +20,7 @@ class Email_msg(BaseModel):
 class Convo_summary(BaseModel):
     thread_id:str
     subject:str
+    last_updated_time:datetime
     summary:str
     products:List[str]
     
