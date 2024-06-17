@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from api.email_filtering_and_info_generation.services import init_oauth_flow
+from api.email_authorization.services import init_oauth_flow
 from google_auth_oauthlib.flow import Flow # type: ignore
 from pathlib import Path
 
@@ -16,17 +16,17 @@ router = APIRouter()
 async def callback(request: Request, id: int):
     
     
-    print("Received callback request:")
-    print(f"Query parameters: {request.query_params}")
-    print(f"Path parameters: {request.path_params}")
-    print(f"Headers: {request.headers}")
-    print(f"Body: {await request.body()}")
-    print("in the CALLBACK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'")
+    # print("Received callback request:")
+    # print(f"Query parameters: {request.query_params}")
+    # print(f"Path parameters: {request.path_params}")
+    # print(f"Headers: {request.headers}")
+    # print(f"Body: {await request.body()}")
+    # print("in the CALLBACK'")
 
     try:
         # Print the query parameters received in the request
         print("Query Parameters:", dict(request.query_params))
-        id = 1
+
         
         # Extract query parameters
         state = request.query_params.get('state')

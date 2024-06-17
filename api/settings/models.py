@@ -64,15 +64,22 @@ class DeleteReadingEmail(BaseModel):
   removing_email: str
   
 class PostNewIntegratingEmail(BaseModel):
+  emailID: int
   emailAddress: str
   nickName: str
   clientSecret:str
+
+class GetNewIntergratingEmailID(BaseModel):
+  emailID: int
   
 class  PostEditingEmail(BaseModel):
   oldEmailAddress: str
   editedEmailAddress: str
   nickName: str
   clientSecret:str
+  
+class EmailINtegrationPostResponseMessage(BaseModel):
+  message: str
 
 
 class PostingNotiSendingChannelsRecord(BaseModel):

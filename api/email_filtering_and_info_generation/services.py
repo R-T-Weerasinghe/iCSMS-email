@@ -30,32 +30,9 @@ async def get_all_reading_accounts():
     
     return all_reading_email_accs
 
-async def update_authorization_uri(authorization_url: str, email_acc_address: str):
-    
-    doc = {"id":2, "needToAuthorize":True, "needToAuthorizeAddress":email_acc_address, "authorization_url":authorization_url}
-    
-    existing_document = collection_configurations.find_one({"id": 2})
-    
-    if existing_document:
-         # Update the document with the new values
-         collection_configurations.update_one({"id": 2}, {"$set": doc})   
-    else: 
-    
-        collection_configurations.insert_one(doc)
-        
-        
-# Initialize the OAuth flow
-def init_oauth_flow(client_secrets_file: str, redirect_uri: str):
-    flow = Flow.from_client_secrets_file(
-        client_secrets_file,
-        scopes = [
-            'https://www.googleapis.com/auth/gmail.modify',
-            'https://www.googleapis.com/auth/gmail.settings.basic'
-        ],
 
-        redirect_uri=redirect_uri
-    )
-    return flow
+        
+
 
 
   

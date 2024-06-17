@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from api.email_filtering_and_info_generation.check_notifications import check_notifications_for_managers
 from api.summary.routes import router as conversation_router
 
-from api.email_filtering_and_info_generation.routes import router as retrieval_and_info_router
+from api.email_authorization.routes import router as authorization_router
 from api.filtering.routes import router as filtering_router
 from api.settings.routes import router as settings_router
 from api.dashboard.routes import router as dashboard_router
@@ -40,7 +40,7 @@ EMAIL_PREFIX = "/email"
 app.include_router(conversation_router, prefix=EMAIL_PREFIX)
 app.include_router(settings_router, prefix=EMAIL_PREFIX)
 app.include_router(filtering_router, prefix=EMAIL_PREFIX)
-app.include_router(retrieval_and_info_router, prefix=EMAIL_PREFIX)
+app.include_router(authorization_router, prefix=EMAIL_PREFIX)
 app.include_router(dashboard_router,prefix=EMAIL_PREFIX)
 app.include_router(suggestions_router,prefix=EMAIL_PREFIX)
 

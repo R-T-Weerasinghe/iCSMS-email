@@ -5,13 +5,56 @@ from api.settings.models import  EditingEmailData, EmailAcc, NotiSendingChannels
 from api.email_filtering_and_info_generation.services import send_reading_email_account, get_reading_emails_array
 from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
 from api.email_filtering_and_info_generation.services import get_reading_emails_array
+from google.auth.exceptions import DefaultCredentialsError
 
 # ----------------------DB API calls--------------------------------------------------------------------------------------------------------
 
-
-
 # post a new trigger into Triggers 
 from api.settings.models import Trigger
+
+state_store = {}
+
+def check_client_secret_validation_init_oauth_flow(client_secrets_file: str, redirect_uri: str):
+    try:
+        flow = flow.from_client_secrets_file(
+            client_secrets_file,
+            scopes=[
+                'https://www.googleapis.com/auth/gmail.modify',
+                'https://www.googleapis.com/auth/gmail.settings.basic'
+            ],
+            redirect_uri=redirect_uri
+        )
+        return True
+    except DefaultCredentialsError as e:
+        print(f"Invalid client secret file: {e}")
+        return False
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+
+
+def check_client_secret_validation(new_email_client_secret_content: str, id: int):
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    
+    # if the following folder already doesn;t exist the following code will create it.
+    new_folder_path= f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmailTemp"
+    os.makedirs(new_folder_path, exist_ok=True)
+
+    client_secrets_file = f"{new_folder_path}/client_secret.json"
+
+    with open(client_secrets_file, "w") as file:
+        file.write(new_email_client_secret_content)
+    
+    # MIGHT OCCU A BUG HERE BECAUSE THE REDIRECT ID FOR EACH EMAIL MIGHT BE DIFFERENT. Comment out the hardcoded id.
+    id = 1
+    redirect_uri = f'http://127.0.0.1:8000/email/info_and_retrieval/callback?id={id}'
+    
+    output = check_client_secret_validation_init_oauth_flow(client_secrets_file, redirect_uri)
+    
+    os.remove(client_secrets_file)
+    
+    return output
 
 
 async def send_new_trigger(trigger: Trigger):

@@ -1,6 +1,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from api.settings.models import DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, IntergratingEmailData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, SSShiftData, SendSystemConfigData, UserRoleResponse
+from api.email_authorization.services import login_async
+from api.settings.models import DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, EmailINtegrationPostResponseMessage, IntergratingEmailData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, SSShiftData, SendSystemConfigData, UserRoleResponse
 from typing import Dict, Any, List
 from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
 from api.email_filtering_and_info_generation.services import get_reading_emails_array
@@ -24,13 +25,22 @@ async def receive_email_data(email_data: PostNewIntegratingEmail):
     # Access the email data sent from Angular
     
     print("Received data:", email_data)
+    email_id = email_data.emailID
     email_address = email_data.emailAddress
     nick_name = email_data.nickName
     client_secret=email_data.clientSecret
+    result = services.check_client_secret_validation
     
-    await services.integrateEmail(email_address,nick_name, client_secret)
+    if  result == True:
+        await services.integrateEmail(email_address,nick_name, client_secret)
+        return EmailINtegrationPostResponseMessage(message = "intergration complete")
+    elif result == False:
+         return EmailINtegrationPostResponseMessage(message = "Client secret error")
+    else:
+        raise HTTPException(status_code=500, detail="An internal error occurred in services.check_client_secret_validation")
+    
 
-    return {"message": "Email data received successfully"}
+  
 
 # listen to rading email account edits
 @router.post("/settings/receive_email_edit_data")
