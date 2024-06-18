@@ -74,6 +74,7 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 responseInqt = gemini_chat.send_message(inquiry_type_identification_script)                           
                 inquiry_type = responseInqt.text
                 
+                time.sleep(5)
                 new_inquiry = {"thread_id": new_email_msg['thread_id'], "recepient_email": new_email_msg['recipient'],"inquiry_summary":inquiry_summary, 
                                "inquiry_convo_summary":inquiry_convo_summary, "status":"ongoing", "inquiry_type":inquiry_type, "products":new_email_msg['products'],
                              "start_time":new_email_msg['time'], "end_time":None, "effectiveness":None, "efficiency":None, "isOverdue":False}
@@ -111,6 +112,8 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 
                 responseIst = gemini_chat.send_message(issue_type_identification_script)                           
                 issue_type = responseIst.text
+                
+                time.sleep(5)
                 
                 new_issue = {"thread_id": new_email_msg['thread_id'], "recepient_email": new_email_msg['recipient'], "issue_summary":issue_summary,
                              "issue_convo_summary": issue_convo_summary,"status":"ongoing", "issue_type":issue_type, "products":new_email_msg['products'],
@@ -205,7 +208,7 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 
                 summarize_script = f"""{new_email_msg['body']} summarize the above email body to a minimum word count as possible. output only the summary. don't output anything else. """
                 
-                summarize_response = model.generate_content(issue_inquiry_identification_script)
+                summarize_response = model.generate_content(summarize_script)
                 summarize_response.resolve()
                 inquiry_summary = summarize_response.text
                 

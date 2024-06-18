@@ -64,7 +64,7 @@ async def summarize_conversations(new_email_msg_array):
         # at last adding the new_email_id to the array
         
         if new_email_msg["thread_id"] in thread_id_list:
-             update_summary(new_email_msg["thread_id"], response.content, new_email_msg["time"])
+             await update_summary(new_email_msg["thread_id"], response.content, new_email_msg["time"])
         
         else:
         
