@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from api.email_authorization.services import login_async
-from api.settings.models import DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, EmailINtegrationPostResponseMessage, IntergratingEmailData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, SSShiftData, SendSystemConfigData, UserRoleResponse
+from api.settings.models import DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, EmailINtegrationPostResponseMessage, GetNewIntergratingEmailID, IntergratingEmailData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, SSShiftData, SendSystemConfigData, UserRoleResponse
 from typing import Dict, Any, List
 from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
 from api.email_filtering_and_info_generation.services import get_reading_emails_array
@@ -317,4 +317,8 @@ async def get_system_configuration_data():
     
     return formatted_result
         
+@router.get("/settings/get_new_intergrating_email_id", response_model=GetNewIntergratingEmailID)
+async def get_new_intergrating_email_id():
     
+    return await services.get_new_intergrating_email_id()  
+     

@@ -1,7 +1,7 @@
 import os
 from fastapi import HTTPException
 from api.email_filtering_and_info_generation.models import Reading_email_acc
-from api.settings.models import  EditingEmailData, EmailAcc, NotiSendingChannelsRecord, SSShiftData
+from api.settings.models import  EditingEmailData, EmailAcc, GetNewIntergratingEmailID, NotiSendingChannelsRecord, SSShiftData
 from api.email_filtering_and_info_generation.services import send_reading_email_account, get_reading_emails_array
 from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
 from api.email_filtering_and_info_generation.services import get_reading_emails_array
@@ -273,7 +273,23 @@ async def get_accs_to_check_overdue_issues(user_name: str):
     else:
         raise HTTPException(status_code=404, detail="User not found")
     
+async def get_new_intergrating_email_id(): 
+        
+    reading_email_acc_array = await get_reading_emails_array()
     
+    
+    # get the id of the new email account
+    if reading_email_acc_array:
+        # Find the maximum id value of the reading_email_acc_array
+        max_id = max(int(d["id"]) for d in reading_email_acc_array) # type: ignore
+
+        # Increment the id value for the new dictionary
+        new_id = str(max_id + 1)
+    else:
+        new_id=1
+    
+    return GetNewIntergratingEmailID(emailID=new_id)
+       
 async def integrateEmail(new_email_address, new_email_nickname, new_email_client_secret_content):
 
     

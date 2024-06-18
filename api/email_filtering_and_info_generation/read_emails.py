@@ -21,7 +21,8 @@ from api.email_filtering_and_info_generation.suggestions_identification import i
 
 from api.email_authorization.services import refresh_token, is_token_valid, login_async
 
-from api.email_filtering_and_info_generation.services import get_all_reading_accounts, router, update_authorization_uri
+from api.email_filtering_and_info_generation.services import get_all_reading_accounts, router
+from api.email_authorization.services import update_authorization_uri
 from api.email_filtering_and_info_generation.services import send_email_message,get_reading_emails_array
 
 from fastapi import FastAPI, Request
