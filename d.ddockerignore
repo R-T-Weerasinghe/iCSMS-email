@@ -1,0 +1,7 @@
+credentials/
+.env
+chatGPT.link
+dev/
+dev.py
+README.md
+structure_explanation.txt
