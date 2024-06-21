@@ -1,35 +1,47 @@
 from typing import List, Literal, Optional
 from fastapi import Query
-from pydantic import BaseModel, Field, SerializeAsAny, field_validator
-from datetime import datetime, date
-from .utilsModel import parse_to_list
+from pydantic import BaseModel
+from datetime import datetime
+
+
+class EmailInDB(BaseModel):
+    msgSummary: str
+    person: Literal['Client', 'Company']
+    dateTime: datetime
+
 
 class IssueInDB(BaseModel):
     thread_id: str
-    issue_convo_summary: str
-    status: Optional[str] = None
-    sender: Optional[str] = None
-    recipient: Optional[str] = None
-    tags: Optional[List[str]] = None
+    issue_summary: str
+    convo_summary: Optional[List[EmailInDB]] = None
+    status: Literal['new', 'waiting', 'update', 'closed']
+    client: Optional[str] = None
+    company: Optional[str] = None
+    products: Optional[List[str]] = None
     isOverdue: Optional[bool] = None
-    start_time: datetime
+    dateOpened: datetime
     dateClosed: Optional[datetime] = None
     dateUpdate: Optional[datetime] = None
+    dateOverdue: Optional[datetime] = None
     effectivity: Optional[int] = None
     efficiency: Optional[int] = None
+    firstResponseTime: Optional[int] = None  # in minutes
+    avgResponseTime: Optional[int] = None    # in minutes
+    resolutionTime: Optional[int] = None     # in minutes
+    sentiment: Optional[str] = None
+
 
 class Issue(BaseModel):
     id: str
     issue: str
-    # status: Literal['New', 'Waiting', 'Update', 'Closed']
-    status: str # NOTE: only for testing purposes
-    sender: str
-    recipient: str
+    status: Literal['new', 'waiting', 'update', 'closed']
+    client: str
+    company: str
     tags: List[str]
     dateOpened: datetime
-    isOverdue: Optional[bool] = None
     dateClosed: Optional[datetime] = None
     dateUpdate: Optional[datetime] = None
+    isOverdue: Optional[bool] = None
     effectivity: Optional[int] = None
     efficiency: Optional[int] = None
 
@@ -37,31 +49,73 @@ class Issue(BaseModel):
     def convert(cls, issueInDB: IssueInDB) -> 'Issue':
         """
         Converts an IssueInDB object to an Issue object.
-
-        Args:
-            issueInDB: The IssueInDB object to be converted.
-
-        Returns:
-            Issue: The converted Issue object.
         """
         return cls(
             id=issueInDB.thread_id,
-            issue=issueInDB.issue_convo_summary,
-            status="New",
-            sender="testSender@gmail.com",
-            recipient="testSender@gmail.com",
-            tags=["tag1", "tag2"],
-            dateOpened=issueInDB.start_time
-            # status=issueInDB.status,
-            # sender=issueInDB.sender,
-            # recipient=issueInDB.recipient,
-            # tags=issueInDB.tags,
-            # isOverdue=issueInDB.isOverdue,
-            # dateOpened=issueInDB.dateOpened,
-            # dateClosed=issueInDB.dateClosed,
-            # dateUpdate=issueInDB.dateUpdate,
-            # effectivity=issueInDB.effectivity,
-            # efficiency=issueInDB.efficiency
+            issue=issueInDB.issue_summary,
+            status=issueInDB.status,
+            client=issueInDB.client,
+            company=issueInDB.company,
+            tags=issueInDB.products,
+            isOverdue=issueInDB.isOverdue,
+            dateOpened=issueInDB.dateOpened,
+            dateClosed=issueInDB.dateClosed,
+            dateUpdate=issueInDB.dateUpdate,
+            dateOverdue=issueInDB.dateOverdue,
+            effectivity=issueInDB.effectivity,
+            efficiency=issueInDB.efficiency,
+        )
+
+
+class Email(BaseModel):
+    body: str
+    isClient: bool
+    dateTime: datetime
+
+    @classmethod
+    def convert(cls, emailInDB: EmailInDB) -> 'Email':
+        """
+        Converts an EmailInDB object to an Email object.
+        """
+        return cls(
+            body=emailInDB.msgSummary,
+            isClient=emailInDB.person == "Client",
+            dateTime=emailInDB.dateTime
+        )
+
+
+class IssueDetailed(Issue):
+    dateOverdue: datetime
+    firstResponseTime: Optional[int] = None # in minutes
+    avgResponseTime: Optional[int] = None   # in minutes
+    resolutionTime: Optional[int] = None    # in minutes
+    sentiment: Optional[str] = None
+    emails: List[Email]
+
+    @classmethod
+    def convert(cls, issueInDB: IssueInDB) -> 'IssueDetailed':
+        """
+        Converts an IssueInDB object to an IssueDetailed object.
+        """
+        return cls(
+            id=issueInDB.thread_id,
+            issue=issueInDB.issue_summary,
+            status=issueInDB.status,
+            client=issueInDB.client,
+            company=issueInDB.company,
+            tags=issueInDB.products,
+            isOverdue=issueInDB.isOverdue,
+            dateOpened=issueInDB.dateOpened,
+            dateClosed=issueInDB.dateClosed,
+            dateUpdate=issueInDB.dateUpdate,
+            dateOverdue=issueInDB.dateOverdue,
+            effectivity=issueInDB.effectivity,
+            efficiency=issueInDB.efficiency,
+            firstResponseTime=issueInDB.firstResponseTime,
+            avgResponseTime=issueInDB.avgResponseTime,
+            resolutionTime=issueInDB.resolutionTime,
+            sentiment=issueInDB.sentiment,
+            emails=[Email.convert(email) for email in issueInDB.convo_summary]
         )
 
 
@@ -70,33 +124,5 @@ class IssuesResponse(BaseModel):
     total: int
     skip: int
     limit: int
-    
-class IssuesParams(BaseModel):
-    # NOTE: SerializeAsAny is used to suppress a *warning* given by Pydantic when handling arrays. This is a bug in Pydantic.
-    # NOTE: Moreinfo: https://github.com/pydantic/pydantic/issues/7905
-    r: Optional[SerializeAsAny[str]] = Field(
-        Query(None, description="Recipient email addresses"))
-    s: Optional[SerializeAsAny[str]] = Field(
-        Query(None, description="Sender email addresses"))
-    tags: Optional[SerializeAsAny[str]] = Field(
-        Query(None, description="Tags associated with the issue"))
-    allTags: Optional[bool] = Field(
-        Query(None, description="Indicates if all tags should be present"))
-    status: Optional[SerializeAsAny[str]] = Field(
-        Query(None, description="Status of the issue"))
-    # date: Optional[str] = Field(Query(None, description="Dates in between which the issue was opened"))
-    dateFrom: Optional[date] = Field(
-        Query(None, description="Start date for the issue (inclusive)"))
-    dateTo: Optional[date] = Field(
-        Query(None, description="End date for the issue (inclusive)"))
-    q: Optional[str] = Field(Query(None, description="Search query"))
-    new: Optional[bool] = Field(
-        Query(None, description="Indicates if the issue is new"))
-    imp: Optional[bool] = Field(
-        Query(None, description="Indicates if the issue is important"))
-    skip: int = Field(
-        Query(None, description="Number of records to skip"))
-    limit: int = Field(
-        Query(None, description="Number of records to return"))
 
-    _to_list = field_validator('r', 's', 'tags', 'status')(parse_to_list)
+

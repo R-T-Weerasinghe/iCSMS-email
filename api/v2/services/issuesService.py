@@ -1,7 +1,11 @@
 from datetime import date
 from typing import List, Optional
+from bson import ObjectId
+from fastapi import HTTPException
+
 from api.v2.dependencies.database import collection_issues
 from api.v2.models.issuesModel import IssuesResponse, Issue, IssueInDB
+
 
 def getIssues(
     skip: int, 
@@ -16,7 +20,7 @@ def getIssues(
     q: Optional[str] = None,
     new: Optional[bool] = None,
     imp: Optional[bool] = None
-) ->IssuesResponse :
+):
     """
     Get issues based on the given parameters.
     """
@@ -57,30 +61,27 @@ def getIssues(
         "skip": skip,
         "limit": limit
     }
-    return {
-        "issues": [
-            {
-                "id": "1",
-                "issue": "Issue 1",
-                "isOverdue": False,
-                "status": "New",
-                "sender": "testSender@gmai.com",
-                "recipient": "dfsfssf",
-                "dateOpened": "2021-10-10T10:10:10",
-                "tags": ["tag1", "tag2"],
-            },
-            {
-                "id": "2",
-                "issue": "Issue 2",
-                "isOverdue": False,
-                "status": "New",
-                "sender": "dsffsf",
-                "recipient": "sdgjnjsnj",
-                "dateOpened": "2021-10-10T10:10:10",
-                "tags": ["tag3", "tag4"],
-            }
-        ],
-        "total": 2,
-        "skip": skip,
-        "limit": limit
-    }
+
+
+def getIssueById(issue_id: str) -> Issue:
+    """
+    Get an issue by its ID.
+    """
+    issue = collection_issues.find_one({"_id": ObjectId(issue_id)})
+    if not issue:
+        raise HTTPException(status_code=404, detail=f"Issue with the id {issue_id} not found")
+    issue["id"] = str(issue["_id"])
+    del issue["_id"]
+    return Issue.convert(IssueInDB(**issue))
+
+
+def getIssueByThreadId(thread_id: str) -> Issue:
+    """
+    Get an issue by its thread ID.
+    """
+    issue = collection_issues.find_one({"thread_id": thread_id})
+    if not issue:
+        raise HTTPException(status_code=404, detail=f"Issue with the thread id {thread_id} not found")
+    issue["id"] = str(issue["_id"])
+    del issue["_id"]
+    return Issue.convert(IssueInDB(**issue))

@@ -22,7 +22,7 @@ from api.suggestions_page.routes import router as suggestions_router
 from api.email_filtering_and_info_generation.read_emails import repeat_every_10mins
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
-from api.v2.routers.issuesRouter import router as v2_router
+from api.v2.routers.mainRouter import router as v2_router
 
 app = FastAPI()
 
@@ -71,12 +71,14 @@ async def docs():
     return RedirectResponse(url='/docs')
 
 # Exception handler for pydantic validation errors
+# TODO: This is a temporary solution. We should handle the errors in a better way. Only request validation errors should be handled here.
 @app.exception_handler(ValidationError)
 async def validation_exception_handler(request: Request, exc: ValidationError):
     return JSONResponse(
         status_code=400,
         content={"detail": exc.errors()},
     )
+
 
 if __name__ == "__main__":  # debugging
     uvicorn.run(app, host="127.0.0.1", port=8000)
