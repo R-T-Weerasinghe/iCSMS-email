@@ -1,15 +1,14 @@
 from datetime import date
 from typing import List, Optional
-from bson import ObjectId
 from fastapi import HTTPException
 
-from api.v2.dependencies.database import collection_issues
-from api.v2.models.issuesModel import IssuesResponse, Issue, IssueInDB
+from api.v2.dependencies.database import collection_inquiries
+from api.v2.models.inquiriesModel import InquiriesResponse, Inquiry, InquiryInDB
 
 
-def getIssues(
-    skip: int, 
-    limit: int, 
+def getInquiries(
+    skip: int,
+    limit: int,
     r: Optional[List[str]] = None,
     s: Optional[List[str]] = None,
     tags: Optional[List[str]] = None,
@@ -22,7 +21,7 @@ def getIssues(
     imp: Optional[bool] = None
 ):
     """
-    Get issues based on the given parameters.
+    Get inquiries based on the given parameters.
     """
     query = {}
     if skip is None:
@@ -44,46 +43,34 @@ def getIssues(
 
     if dateFrom and dateTo:
         query["start_time"] = {"$gte": dateFrom, "$lte": dateTo}
-    if q:
-        query["$text"] = {"$search": q}
+    # if q:
+    #     query["$text"] = {"$search": q}
     # if new:
     #     query["status"] = "New"
     # if imp:
     #     query["tags"] = {"$in": ["important"]}
-    issues = list(collection_issues.find(query).skip(skip).limit(limit))
+    inquiries = list(collection_inquiries.find(query).skip(skip).limit(limit))
 
-    for i, issue in enumerate(issues):
-        issue["id"] = str(issue["_id"])
-        del issue["_id"]
-        issues[i] = Issue.convert(IssueInDB(**issue))
+    for i, inquiry in enumerate(inquiries):
+        inquiry["id"] = str(inquiry["_id"])
+        del inquiry["_id"]
+        inquiries[i] = Inquiry.convert(InquiryInDB(**inquiry))
 
     return {
-        "issues": issues,
-        "total": collection_issues.count_documents(query),
+        "inquiries": inquiries,
+        "total": collection_inquiries.count_documents(query),
         "skip": skip,
         "limit": limit
     }
 
 
-def getIssueById(issue_id: str) -> Issue:
-    """
-    Get an issue by its ID.
-    """
-    issue = collection_issues.find_one({"_id": ObjectId(issue_id)})
-    if not issue:
-        raise HTTPException(status_code=404, detail=f"Issue with the id {issue_id} not found")
-    issue["id"] = str(issue["_id"])
-    del issue["_id"]
-    return Issue.convert(IssueInDB(**issue))
-
-
-def getIssueByThreadId(thread_id: str) -> Issue:
+def getInquiryByThreadId(thread_id: str) -> Inquiry:
     """
     Get an issue by its thread ID.
     """
-    issue = collection_issues.find_one({"thread_id": thread_id})
+    issue = collection_inquiries.find_one({"thread_id": thread_id})
     if not issue:
-        raise HTTPException(status_code=404, detail=f"Issue with the thread id {thread_id} not found")
+        raise HTTPException(status_code=404, detail=f"Inquiry with the thread id {thread_id} not found")
     issue["id"] = str(issue["_id"])
     del issue["_id"]
-    return Issue.convert(IssueInDB(**issue))
+    return Inquiry.convert(InquiryInDB(**issue))

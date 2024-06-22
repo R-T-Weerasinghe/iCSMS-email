@@ -3,26 +3,22 @@ from fastapi import Query
 from pydantic import BaseModel
 from datetime import datetime
 
-
-class EmailInDB(BaseModel):
-    msgSummary: str
-    person: Literal['Client', 'Company']
-    dateTime: datetime
-
+from .convoModel import EmailInDB, Email
 
 class IssueInDB(BaseModel):
     thread_id: str
     issue_summary: str
-    convo_summary: Optional[List[EmailInDB]] = None
-    status: Literal['new', 'waiting', 'update', 'closed']
-    client: Optional[str] = None
-    company: Optional[str] = None
+    issue_convo_summary_arr: Optional[List[EmailInDB]] = None
+    status: Literal['ongoing', 'closed']
+    ongoing_status: Optional[Literal['new', 'waiting', 'update']]
+    recepient_email: str
+    sender_email: str
+    issue_type: Optional[str] = None
     products: Optional[List[str]] = None
     isOverdue: Optional[bool] = None
-    dateOpened: datetime
-    dateClosed: Optional[datetime] = None
-    dateUpdate: Optional[datetime] = None
-    dateOverdue: Optional[datetime] = None
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    updated_time: Optional[datetime] = None
     effectivity: Optional[int] = None
     efficiency: Optional[int] = None
     firstResponseTime: Optional[int] = None  # in minutes
@@ -50,42 +46,29 @@ class Issue(BaseModel):
         """
         Converts an IssueInDB object to an Issue object.
         """
+        if issueInDB.status == "ongoing":
+            status = issueInDB.ongoing_status
+        else:
+            status = issueInDB.status
         return cls(
             id=issueInDB.thread_id,
             issue=issueInDB.issue_summary,
-            status=issueInDB.status,
-            client=issueInDB.client,
-            company=issueInDB.company,
+            status=status,
+            client=issueInDB.sender_email,
+            company=issueInDB.recepient_email,
             tags=issueInDB.products,
             isOverdue=issueInDB.isOverdue,
-            dateOpened=issueInDB.dateOpened,
-            dateClosed=issueInDB.dateClosed,
-            dateUpdate=issueInDB.dateUpdate,
-            dateOverdue=issueInDB.dateOverdue,
+            dateOpened=issueInDB.start_time,
+            dateClosed=issueInDB.end_time,
+            dateUpdate=issueInDB.updated_time,
+            dateOverdue=None,
             effectivity=issueInDB.effectivity,
             efficiency=issueInDB.efficiency,
         )
 
 
-class Email(BaseModel):
-    body: str
-    isClient: bool
-    dateTime: datetime
-
-    @classmethod
-    def convert(cls, emailInDB: EmailInDB) -> 'Email':
-        """
-        Converts an EmailInDB object to an Email object.
-        """
-        return cls(
-            body=emailInDB.msgSummary,
-            isClient=emailInDB.person == "Client",
-            dateTime=emailInDB.dateTime
-        )
-
-
 class IssueDetailed(Issue):
-    dateOverdue: datetime
+    dateOverdue: Optional[datetime] = None
     firstResponseTime: Optional[int] = None # in minutes
     avgResponseTime: Optional[int] = None   # in minutes
     resolutionTime: Optional[int] = None    # in minutes
@@ -97,17 +80,21 @@ class IssueDetailed(Issue):
         """
         Converts an IssueInDB object to an IssueDetailed object.
         """
+        if issueInDB.status == "ongoing":
+            status = issueInDB.ongoing_status
+        else:
+            status = issueInDB.status
         return cls(
             id=issueInDB.thread_id,
             issue=issueInDB.issue_summary,
-            status=issueInDB.status,
-            client=issueInDB.client,
-            company=issueInDB.company,
+            status=status,
+            client=issueInDB.sender_email,
+            company=issueInDB.recepient_email,
             tags=issueInDB.products,
             isOverdue=issueInDB.isOverdue,
-            dateOpened=issueInDB.dateOpened,
-            dateClosed=issueInDB.dateClosed,
-            dateUpdate=issueInDB.dateUpdate,
+            dateOpened=issueInDB.start_time,
+            dateClosed=issueInDB.end_time,
+            dateUpdate=issueInDB.updated_time,
             dateOverdue=issueInDB.dateOverdue,
             effectivity=issueInDB.effectivity,
             efficiency=issueInDB.efficiency,
@@ -115,7 +102,7 @@ class IssueDetailed(Issue):
             avgResponseTime=issueInDB.avgResponseTime,
             resolutionTime=issueInDB.resolutionTime,
             sentiment=issueInDB.sentiment,
-            emails=[Email.convert(email) for email in issueInDB.convo_summary]
+            emails=[Email.convert(email) for email in issueInDB.issue_convo_summary_arr]
         )
 
 

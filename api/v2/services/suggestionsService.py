@@ -1,15 +1,14 @@
 from datetime import date
 from typing import List, Optional
-from bson import ObjectId
 from fastapi import HTTPException
 
-from api.v2.dependencies.database import collection_issues
-from api.v2.models.issuesModel import IssuesResponse, Issue, IssueInDB
+from api.v2.dependencies.database import collection_suggestions
+from api.v2.models.suggestionsModel import Suggestion, SuggestionInDB
 
 
-def getIssues(
-    skip: int, 
-    limit: int, 
+def getSuggestions(
+    skip: int,
+    limit: int,
     r: Optional[List[str]] = None,
     s: Optional[List[str]] = None,
     tags: Optional[List[str]] = None,
@@ -22,7 +21,7 @@ def getIssues(
     imp: Optional[bool] = None
 ):
     """
-    Get issues based on the given parameters.
+    Get suggestions based on the given parameters.
     """
     query = {}
     if skip is None:
@@ -44,46 +43,34 @@ def getIssues(
 
     if dateFrom and dateTo:
         query["start_time"] = {"$gte": dateFrom, "$lte": dateTo}
-    if q:
-        query["$text"] = {"$search": q}
+    # if q:
+    #     query["$text"] = {"$search": q}
     # if new:
     #     query["status"] = "New"
     # if imp:
     #     query["tags"] = {"$in": ["important"]}
-    issues = list(collection_issues.find(query).skip(skip).limit(limit))
+    suggestions = list(collection_suggestions.find(query).skip(skip).limit(limit))
 
-    for i, issue in enumerate(issues):
-        issue["id"] = str(issue["_id"])
-        del issue["_id"]
-        issues[i] = Issue.convert(IssueInDB(**issue))
+    for i, suggestion in enumerate(suggestions):
+        suggestion["id"] = str(suggestion["_id"])
+        del suggestion["_id"]
+        suggestions[i] = Suggestion.convert(SuggestionInDB(**suggestion))
 
     return {
-        "issues": issues,
-        "total": collection_issues.count_documents(query),
+        "suggestions": suggestions,
+        "total": collection_suggestions.count_documents(query),
         "skip": skip,
         "limit": limit
     }
 
 
-def getIssueById(issue_id: str) -> Issue:
-    """
-    Get an issue by its ID.
-    """
-    issue = collection_issues.find_one({"_id": ObjectId(issue_id)})
-    if not issue:
-        raise HTTPException(status_code=404, detail=f"Issue with the id {issue_id} not found")
-    issue["id"] = str(issue["_id"])
-    del issue["_id"]
-    return Issue.convert(IssueInDB(**issue))
-
-
-def getIssueByThreadId(thread_id: str) -> Issue:
+def getSuggestionByThreadId(thread_id: str) -> Suggestion:
     """
     Get an issue by its thread ID.
     """
-    issue = collection_issues.find_one({"thread_id": thread_id})
+    issue = collection_suggestions.find_one({"thread_id": thread_id})
     if not issue:
-        raise HTTPException(status_code=404, detail=f"Issue with the thread id {thread_id} not found")
+        raise HTTPException(status_code=404, detail=f"Suggestion with the thread id {thread_id} not found")
     issue["id"] = str(issue["_id"])
     del issue["_id"]
-    return Issue.convert(IssueInDB(**issue))
+    return Suggestion.convert(SuggestionInDB(**issue))

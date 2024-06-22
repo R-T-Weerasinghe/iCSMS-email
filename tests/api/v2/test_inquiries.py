@@ -6,17 +6,17 @@ from bson import ObjectId
 client = TestClient(app)
 
 
-class TestIssues:
-    def test_issues_without_any_params(self):
-        response = client.get("/email/v2/issues/")
+class TestInquiries:
+    def test_inquiries_without_any_params(self):
+        response = client.get("/email/v2/inquiries/")
         assert response.status_code == 400
 
-    def test_issues_with_invalid_params(self):
-        response = client.get("/email/v2/issues/?skip=-1&limit=-1")
+    def test_inquiries_with_invalid_params(self):
+        response = client.get("/email/v2/inquiries/?skip=-1&limit=-1")
         assert response.status_code == 400
 
-    @mock.patch("api.v2.services.issuesService.collection_issues")
-    def test_issues_with_mocking(self, mock_collection):
+    @mock.patch("api.v2.services.inquiriesService.collection_inquiries")
+    def test_inquiries_with_mocking(self, mock_collection):
         mock_collection.find_one.return_value = {
             "thread_id": "123",
             "subject": "Test subject",
@@ -26,29 +26,29 @@ class TestIssues:
             "ongoing_status": "new",
             "start_time": "2021-01-01T00:00:00",
             "products": ["product1", "product2"],
-            "issue_summary": "Test summary",
+            "inquiry_summary": "Test summary",
             "_id": ObjectId()
         }
-        response = client.get("/email/v2/issues/123")
+        response = client.get("/email/v2/inquiries/123")
         assert response.status_code == 200
         json = response.json()
         assert "id" in json
-        assert "issue" in json
+        assert "inquiry" in json
         assert "status" in json
         assert "client" in json
         assert "company" in json
         assert "tags" in json
         assert "dateOpened" in json
 
-    @mock.patch("api.v2.services.issuesService.collection_issues")
-    def test_issue_with_wrong_id_with_mocking(self, mock_collection):
+    @mock.patch("api.v2.services.inquiriesService.collection_inquiries")
+    def test_inquiry_with_wrong_id_with_mocking(self, mock_collection):
         mock_collection.find_one.return_value = None
-        response = client.get("/email/v2/issues/123")
+        response = client.get("/email/v2/inquiries/123")
         assert response.status_code == 404
-        assert response.json() == {"detail": "Issue with the thread id 123 not found"}
+        assert response.json() == {"detail": "Inquiry with the thread id 123 not found"}
 
-    @mock.patch("api.v2.services.issuesService.collection_issues")
-    def test_issues_with_mocking_v2(self, mock_collection):
+    @mock.patch("api.v2.services.inquiriesService.collection_inquiries")
+    def test_inquiries_with_mocking_v2(self, mock_collection):
         mock_data = [
             {
                 "thread_id": "123",
@@ -59,7 +59,7 @@ class TestIssues:
                 "ongoing_status": "new",
                 "start_time": "2021-01-01T00:00:00",
                 "products": ["product1", "product2"],
-                "issue_summary": "Test summary",
+                "inquiry_summary": "Test summary",
                 "_id": ObjectId(),
                 "emails": [
                     {
@@ -83,7 +83,7 @@ class TestIssues:
                 "ongoing_status": "update",
                 "start_time": "2024-07-01T15:00:00",
                 "products": [],
-                "issue_summary": "Test summary",
+                "inquiry_summary": "Test summary",
                 "_id": ObjectId()
             },
             {
@@ -95,7 +95,7 @@ class TestIssues:
                 "ongoing_status": "update",
                 "start_time": "2024-07-01T15:00:00",
                 "products": [],
-                "issue_summary": "Test summary",
+                "inquiry_summary": "Test summary",
                 "_id": ObjectId()
             }
         ]
@@ -124,16 +124,16 @@ class TestIssues:
 
         skip = 0
         limit = 2
-        response = client.get(f"/email/v2/issues/?skip={skip}&limit={limit}")
+        response = client.get(f"/email/v2/inquiries/?skip={skip}&limit={limit}")
         assert response.status_code == 200
         json = response.json()
-        assert "issues" in json
+        assert "inquiries" in json
         assert "total" in json
         assert "skip" in json
         assert "limit" in json
-        assert len(json["issues"]) == 2
+        assert len(json["inquiries"]) == 2
         assert json["total"] == len(mock_data)
         assert json["skip"] == skip
         assert json["limit"] == limit
-        assert json["issues"][0]["id"] == "123"
-        assert json["issues"][1]["id"] == "124"
+        assert json["inquiries"][0]["id"] == "123"
+        assert json["inquiries"][1]["id"] == "124"
