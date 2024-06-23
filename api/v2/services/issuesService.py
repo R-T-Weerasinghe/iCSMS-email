@@ -77,7 +77,7 @@ def getIssueByThreadId(thread_id: str) -> IssueDetailed:
     issue["id"] = str(issue["_id"])
     del issue["_id"]
 
-    emails: List[EmailInDB] = issue["emails"]
+    emails: List[EmailInDB] = issue["issue_convo_summary_arr"]
     dateOverdue = get_overdue_datetime(issue["start_time"])
     firstResponseTime = get_first_response_time(emails)
     avgResponseTime = get_avg_response_time(emails)

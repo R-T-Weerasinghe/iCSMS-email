@@ -1,26 +1,30 @@
+import pytest
 from fastapi.testclient import TestClient
 from main import app
 import unittest.mock as mock
 from bson import ObjectId
 from datetime import datetime
+from pydantic import ValidationError
 
 client = TestClient(app)
 
 
 class TestIssuesEndpoint:
     def test_issues_without_any_params(self):
-        response = client.get("/email/v2/issues/")
-        assert response.status_code == 400
+        with pytest.raises(ValidationError):
+            response = client.get("/email/v2/issues/")
+
 
     def test_issues_with_invalid_params(self):
-        response = client.get("/email/v2/issues/?skip=-1&limit=-1")
-        assert response.status_code == 400
+        with pytest.raises(ValidationError):
+            response = client.get("/email/v2/issues/?skip=-1&limit=-1")
+
 
     @mock.patch("api.v2.services.issuesService.collection_issues")
     def test_issues_by_thread_id(self, mock_collection):
         mock_collection.find_one.return_value = {
             "thread_id": "123",
-            "subject": "Test subject",
+            "thread_subject": "Test thread_subject",
             "sender_email": "test@gmail.com",
             "recepient_email": "aethoroes@gmail.com",
             "status": "ongoing",
@@ -28,7 +32,8 @@ class TestIssuesEndpoint:
             "start_time": "2021-01-01T00:00:00",
             "products": ["product1", "product2"],
             "issue_summary": "Test summary",
-            "_id": ObjectId()
+            "_id": ObjectId(),
+            "issue_convo_summary_arr": []
         }
         response = client.get("/email/v2/issues/123")
         assert response.status_code == 200
@@ -53,31 +58,31 @@ class TestIssuesEndpoint:
         mock_data = [
             {
                 "thread_id": "123",
-                "subject": "Test subject",
+                "thread_subject": "Test thread_subject",
                 "sender_email": "test@gmail.com",
                 "recepient_email": "sender@gmail.com",
                 "status": "ongoing",
                 "ongoing_status": "new",
-                "start_time": "2021-01-01T00:00:00",
+                "start_time": "2024-05-06T05:53:01",
                 "products": ["product1", "product2"],
                 "issue_summary": "Test summary",
                 "_id": ObjectId(),
                 "emails": [
                     {
-                        "body": "Test email body",
-                        "isClient": True,
-                        "dateTime": "2021-01-01T00:00:00"
+                        "message": "Test email message",
+                        "sender_type": "Client",
+                        "time": "2021-01-01T00:00:00"
                     },
                     {
-                        "body": "Test email body",
-                        "isClient": False,
-                        "dateTime": "2021-01-01T00:00:00"
+                        "message": "Test email message",
+                        "sender_type": "Company",
+                        "time": "2021-01-01T00:00:00"
                     }
                 ]
             },
             {
                 "thread_id": "124",
-                "subject": "Test subject",
+                "thread_subject": "Test thread_subject",
                 "sender_email": "test2@gmail.com",
                 "recepient_email": "rex@gmail.com",
                 "status": "ongoing",
@@ -89,7 +94,7 @@ class TestIssuesEndpoint:
             },
             {
                 "thread_id": "125",
-                "subject": "Test subject",
+                "thread_subject": "Test subject",
                 "sender_email": "test2@gmail.com",
                 "recepient_email": "rex@gmail.com",
                 "status": "ongoing",
@@ -150,7 +155,7 @@ class TestIssueServices:
             "recepient_email": "aethoroes@gmail.com",
             "status": "ongoing",
             "ongoing_status": "new",
-            "start_time": datetime(2021, 1, 1, 0, 0, 0),
+            "start_time": "2021-01-01T00:00:00",
             "products": ["product1", "product2"],
             "issue_summary": "Test summary",
             "_id": ObjectId(),

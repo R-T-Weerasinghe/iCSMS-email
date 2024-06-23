@@ -1,19 +1,23 @@
+import pytest
 from fastapi.testclient import TestClient
 from main import app
 import unittest.mock as mock
 from bson import ObjectId
+from pydantic import ValidationError
 
 client = TestClient(app)
 
 
 class TestSuggestions:
     def test_suggestions_without_any_params(self):
-        response = client.get("/email/v2/suggestions/")
-        assert response.status_code == 400
+        with pytest.raises(ValidationError):
+            response = client.get("/email/v2/suggestions/")
+
 
     def test_suggestions_with_invalid_params(self):
-        response = client.get("/email/v2/suggestions/?skip=-1&limit=-1")
-        assert response.status_code == 400
+        with pytest.raises(ValidationError):
+            response = client.get("/email/v2/suggestions/?skip=-1&limit=-1")
+
 
     @mock.patch("api.v2.services.suggestionsService.collection_suggestions")
     def test_suggestions_with_mocking(self, mock_collection):

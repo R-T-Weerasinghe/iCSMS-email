@@ -74,12 +74,12 @@ async def docs():
 # Exception handler for pydantic validation errors
 # TODO: This is a temporary solution. We should handle the errors in
 #   a better way. Only request validation errors should be handled here.
-@app.exception_handler(ValidationError)
-async def validation_exception_handler(request: Request, exc: ValidationError):
-    return JSONResponse(
-        status_code=400,
-        content={"detail": exc.errors()},
-    )
+# @app.exception_handler(ValidationError)
+# async def validation_exception_handler(request: Request, exc: ValidationError):
+#     return JSONResponse(
+#         status_code=400,
+#         content={"detail": exc.errors()},
+#     )
 
 
 if __name__ == "__main__":  # debugging
