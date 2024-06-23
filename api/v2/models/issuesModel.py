@@ -5,31 +5,31 @@ from datetime import datetime
 
 from .convoModel import EmailInDB, Email
 
+
 class IssueInDB(BaseModel):
     thread_id: str
+    thread_subject: str
+    recepient_email: str
+    sender_email: str
     issue_summary: str
     issue_convo_summary_arr: Optional[List[EmailInDB]] = None
     status: Literal['ongoing', 'closed']
     ongoing_status: Optional[Literal['new', 'waiting', 'update']]
-    recepient_email: str
-    sender_email: str
     issue_type: Optional[str] = None
     products: Optional[List[str]] = None
-    isOverdue: Optional[bool] = None
+    sentiment_score: Optional[float] = None
     start_time: datetime
-    end_time: Optional[datetime] = None
     updated_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
     effectivity: Optional[int] = None
     efficiency: Optional[int] = None
-    firstResponseTime: Optional[int] = None  # in minutes
-    avgResponseTime: Optional[int] = None    # in minutes
-    resolutionTime: Optional[int] = None     # in minutes
-    sentiment: Optional[str] = None
+    isOverdue: Optional[bool] = None
 
 
 class Issue(BaseModel):
     id: str
     issue: str
+    subject: str
     status: Literal['new', 'waiting', 'update', 'closed']
     client: str
     company: str
@@ -53,6 +53,7 @@ class Issue(BaseModel):
         return cls(
             id=issueInDB.thread_id,
             issue=issueInDB.issue_summary,
+            subject=issueInDB.thread_subject,
             status=status,
             client=issueInDB.sender_email,
             company=issueInDB.recepient_email,
@@ -61,22 +62,28 @@ class Issue(BaseModel):
             dateOpened=issueInDB.start_time,
             dateClosed=issueInDB.end_time,
             dateUpdate=issueInDB.updated_time,
-            dateOverdue=None,
             effectivity=issueInDB.effectivity,
             efficiency=issueInDB.efficiency,
         )
 
 
 class IssueDetailed(Issue):
-    dateOverdue: Optional[datetime] = None
-    firstResponseTime: Optional[int] = None # in minutes
-    avgResponseTime: Optional[int] = None   # in minutes
-    resolutionTime: Optional[int] = None    # in minutes
-    sentiment: Optional[str] = None
+    dateOverdue: datetime
     emails: List[Email]
+    # for a not replied email, these can be none
+    firstResponseTime: Optional[int] = None  # in minutes
+    avgResponseTime: Optional[int] = None  # in minutes
+    resolutionTime: Optional[int] = None  # in minutes
+    sentiment: Optional[str] = None
 
     @classmethod
-    def convert(cls, issueInDB: IssueInDB) -> 'IssueDetailed':
+    def convert_additional(
+            cls, issueInDB: IssueInDB,
+            dateOverdue: datetime,
+            firstResponseTime: int | None,
+            avgResponseTime: int | None,
+            resolutionTime: int | None
+    ) -> 'IssueDetailed':
         """
         Converts an IssueInDB object to an IssueDetailed object.
         """
@@ -87,6 +94,7 @@ class IssueDetailed(Issue):
         return cls(
             id=issueInDB.thread_id,
             issue=issueInDB.issue_summary,
+            subject=issueInDB.thread_subject,
             status=status,
             client=issueInDB.sender_email,
             company=issueInDB.recepient_email,
@@ -95,13 +103,13 @@ class IssueDetailed(Issue):
             dateOpened=issueInDB.start_time,
             dateClosed=issueInDB.end_time,
             dateUpdate=issueInDB.updated_time,
-            dateOverdue=issueInDB.dateOverdue,
+            dateOverdue=dateOverdue,
             effectivity=issueInDB.effectivity,
             efficiency=issueInDB.efficiency,
-            firstResponseTime=issueInDB.firstResponseTime,
-            avgResponseTime=issueInDB.avgResponseTime,
-            resolutionTime=issueInDB.resolutionTime,
-            sentiment=issueInDB.sentiment,
+            firstResponseTime=firstResponseTime,
+            avgResponseTime=avgResponseTime,
+            resolutionTime=resolutionTime,
+            sentiment=issueInDB.sentiment_score,
             emails=[Email.convert(email) for email in issueInDB.issue_convo_summary_arr]
         )
 
@@ -111,5 +119,3 @@ class IssuesResponse(BaseModel):
     total: int
     skip: int
     limit: int
-
-

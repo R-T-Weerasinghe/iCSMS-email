@@ -1,11 +1,13 @@
-from datetime import date
+from datetime import date, timedelta, datetime
 from typing import List, Optional
 from bson import ObjectId
 from fastapi import HTTPException
 
-from api.v2.dependencies.database import collection_issues
-from api.v2.models.issuesModel import IssuesResponse, Issue, IssueInDB
-
+from api.v2.dependencies.database import collection_issues, collection_configurations
+from api.v2.models.issuesModel import IssueDetailed, Issue, IssueInDB
+from api.v2.models.convoModel import EmailInDB
+from api.v2.services.utilityService import (get_overdue_datetime, get_first_response_time, get_avg_response_time,
+                                            get_resolution_time)
 
 def getIssues(
     skip: int, 
@@ -65,25 +67,22 @@ def getIssues(
     }
 
 
-def getIssueById(issue_id: str) -> Issue:
-    """
-    Get an issue by its ID.
-    """
-    issue = collection_issues.find_one({"_id": ObjectId(issue_id)})
-    if not issue:
-        raise HTTPException(status_code=404, detail=f"Issue with the id {issue_id} not found")
-    issue["id"] = str(issue["_id"])
-    del issue["_id"]
-    return Issue.convert(IssueInDB(**issue))
-
-
-def getIssueByThreadId(thread_id: str) -> Issue:
+def getIssueByThreadId(thread_id: str) -> IssueDetailed:
     """
     Get an issue by its thread ID.
     """
-    issue = collection_issues.find_one({"thread_id": thread_id})
+    issue: dict = collection_issues.find_one({"thread_id": thread_id})
     if not issue:
         raise HTTPException(status_code=404, detail=f"Issue with the thread id {thread_id} not found")
     issue["id"] = str(issue["_id"])
     del issue["_id"]
-    return Issue.convert(IssueInDB(**issue))
+
+    emails: List[EmailInDB] = issue["emails"]
+    dateOverdue = get_overdue_datetime(issue["start_time"])
+    firstResponseTime = get_first_response_time(emails)
+    avgResponseTime = get_avg_response_time(emails)
+    resolutionTime = get_resolution_time(emails, issue["status"])
+
+    return IssueDetailed.convert_additional(
+        IssueInDB(**issue), dateOverdue, firstResponseTime, avgResponseTime, resolutionTime
+    )

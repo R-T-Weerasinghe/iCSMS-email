@@ -8,6 +8,7 @@ class EmailInDB(BaseModel):
     sender_type: Literal['Client', 'Company']
     time: datetime
 
+
 class Email(BaseModel):
     body: str
     isClient: bool

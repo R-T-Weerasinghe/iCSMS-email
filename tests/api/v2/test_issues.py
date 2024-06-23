@@ -2,11 +2,12 @@ from fastapi.testclient import TestClient
 from main import app
 import unittest.mock as mock
 from bson import ObjectId
+from datetime import datetime
 
 client = TestClient(app)
 
 
-class TestIssues:
+class TestIssuesEndpoint:
     def test_issues_without_any_params(self):
         response = client.get("/email/v2/issues/")
         assert response.status_code == 400
@@ -16,7 +17,7 @@ class TestIssues:
         assert response.status_code == 400
 
     @mock.patch("api.v2.services.issuesService.collection_issues")
-    def test_issues_with_mocking(self, mock_collection):
+    def test_issues_by_thread_id(self, mock_collection):
         mock_collection.find_one.return_value = {
             "thread_id": "123",
             "subject": "Test subject",
@@ -137,3 +138,24 @@ class TestIssues:
         assert json["limit"] == limit
         assert json["issues"][0]["id"] == "123"
         assert json["issues"][1]["id"] == "124"
+
+
+class TestIssueServices:
+    @mock.patch("api.v2.services.issuesService.collection_issues")
+    def test_getIssuesByThreadId(self, mock_collection):
+        mock_collection.find_one.return_value = {
+            "thread_id": "123",
+            "thread_subject": "Test subject",
+            "sender_email": "test@gmail.com",
+            "recepient_email": "aethoroes@gmail.com",
+            "status": "ongoing",
+            "ongoing_status": "new",
+            "start_time": datetime(2021, 1, 1, 0, 0, 0),
+            "products": ["product1", "product2"],
+            "issue_summary": "Test summary",
+            "_id": ObjectId(),
+            "issue_convo_summary_arr": []
+        }
+        from api.v2.services.issuesService import getIssueByThreadId
+        response = getIssueByThreadId("123")
+        assert response.id == "123"
