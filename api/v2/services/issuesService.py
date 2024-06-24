@@ -1,4 +1,4 @@
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, time
 from typing import List, Optional
 from bson import ObjectId
 from fastapi import HTTPException
@@ -46,7 +46,7 @@ def getIssues(
         query["ongoing_status"] = {"$in": status}
 
     if dateFrom and dateTo:
-        query["start_time"] = {"$gte": dateFrom, "$lte": dateTo}
+        query["start_time"] = {"$gte": datetime.combine(dateFrom, time.min), "$lte": datetime.combine(dateTo, time.min)}
     if q:
         query["$text"] = {"$search": q}
     # if new:

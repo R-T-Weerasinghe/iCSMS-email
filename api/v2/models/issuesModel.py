@@ -21,7 +21,7 @@ class IssueInDB(BaseModel):
     start_time: datetime
     updated_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
-    effectivity: Optional[int] = None
+    effectiveness: Optional[int] = None
     efficiency: Optional[int] = None
     isOverdue: Optional[bool] = None
 
@@ -62,7 +62,7 @@ class Issue(BaseModel):
             dateOpened=issueInDB.start_time,
             dateClosed=issueInDB.end_time,
             dateUpdate=issueInDB.updated_time,
-            effectivity=issueInDB.effectivity,
+            effectivity=issueInDB.effectiveness,
             efficiency=issueInDB.efficiency,
         )
 
@@ -71,10 +71,10 @@ class IssueDetailed(Issue):
     dateOverdue: datetime
     emails: List[Email]
     # for a not replied email, these can be none
-    firstResponseTime: Optional[int] = None  # in minutes
-    avgResponseTime: Optional[int] = None  # in minutes
-    resolutionTime: Optional[int] = None  # in minutes
-    sentiment: Optional[float] = None
+    firstResponseTime: int | None = None  # in minutes
+    avgResponseTime: int | None = None  # in minutes
+    resolutionTime: int | None = None  # in minutes
+    sentiment: float = None
 
     @classmethod
     def convert_additional(
@@ -104,7 +104,7 @@ class IssueDetailed(Issue):
             dateClosed=issueInDB.end_time,
             dateUpdate=issueInDB.updated_time,
             dateOverdue=dateOverdue,
-            effectivity=issueInDB.effectivity,
+            effectivity=issueInDB.effectiveness,
             efficiency=issueInDB.efficiency,
             firstResponseTime=firstResponseTime,
             avgResponseTime=avgResponseTime,
