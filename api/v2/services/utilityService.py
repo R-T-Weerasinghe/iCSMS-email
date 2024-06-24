@@ -5,7 +5,7 @@ from api.v2.dependencies.database import collection_configurations
 from api.v2.models.convoModel import EmailInDB
 
 
-def get_overdue_datetime(opened_datetime: str) -> datetime:
+def get_overdue_datetime(opened_datetime: datetime) -> datetime:
     """
     Calculates the overdue date based on the opened_datetime and the overdue_margin_time
     from the configurations collection in the database.
@@ -20,17 +20,13 @@ def get_overdue_datetime(opened_datetime: str) -> datetime:
         TypeError: If opened_datetime is not of type datetime.
     """
 
-    try:
-        opened_datetime_converted = datetime.strptime(opened_datetime, "%Y-%m-%dT%H:%M:%S")
-    except ValueError:
-        raise TypeError("opened_datetime is in invalid format")
     config_doc = collection_configurations.find_one({"id": 1})
     overdue_margin: int = int(config_doc["overdue_margin_time"])
-    overdue_date: datetime = opened_datetime_converted + timedelta(days=overdue_margin)
+    overdue_date: datetime = opened_datetime + timedelta(days=overdue_margin)
     return overdue_date
 
 
-def get_first_response_time(email_list: List[EmailInDB], client_name="Client", company_name="Company") -> int | None:
+def get_first_response_time(email_list: List[EmailInDB], client_name="client", company_name="company") -> int | None:
     """
     Calculates the first response time of the company and outputs the time in minutes
 
@@ -61,7 +57,7 @@ def get_first_response_time(email_list: List[EmailInDB], client_name="Client", c
     return None
 
 
-def get_avg_response_time(email_list: List[EmailInDB], client_name="Client", company_name="Company") -> int | None:
+def get_avg_response_time(email_list: List[EmailInDB], client_name="client", company_name="company") -> int | None:
     """
     Calculates the avg response time of the company and outputs the time in minutes
 

@@ -33,7 +33,18 @@ class TestIssuesEndpoint:
             "products": ["product1", "product2"],
             "issue_summary": "Test summary",
             "_id": ObjectId(),
-            "issue_convo_summary_arr": []
+            "issue_convo_summary_arr": [
+                    {
+                        "message": "Test email message",
+                        "sender_type": "Client",
+                        "time": "2021-01-01T00:00:00"
+                    },
+                    {
+                        "message": "Test email message",
+                        "sender_type": "Company",
+                        "time": "2021-01-01T00:00:00"
+                    }
+                ]
         }
         response = client.get("/email/v2/issues/123")
         assert response.status_code == 200

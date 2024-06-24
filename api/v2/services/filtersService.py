@@ -8,11 +8,11 @@ def getCompanyAddresses(type: str):
     Get company addresses.
     """
     if type == "issue":
-        return_list = collection_issues.distinct("company", {"company": {"$ne": None}})
+        return_list = collection_issues.distinct("recepient_email", {"recepient_email": {"$ne": None}})
     elif type == "inquiry":
-        return_list = collection_inquiries.distinct("company", {"company": {"$ne": None}})
+        return_list = collection_inquiries.distinct("recepient_email", {"recepient_email": {"$ne": None}})
     elif type == "suggestion":
-        return_list = collection_suggestions.distinct("company", {"company": {"$ne": None}})
+        return_list = collection_suggestions.distinct("recepient_email", {"recepient_email": {"$ne": None}})
     else:
         raise HTTPException(status_code=400, detail="Invalid type parameter provided.")
     return {"company_addresses": return_list}
@@ -23,11 +23,11 @@ def getClientAddresses(type: str):
     Get client addresses.
     """
     if type == "issue":
-        return_list = collection_issues.distinct("client", {"client": {"$ne": None}})
+        return_list = collection_issues.distinct("sender_email", {"sender_email": {"$ne": None}})
     elif type == "inquiry":
-        return_list = collection_inquiries.distinct("client", {"client": {"$ne": None}})
+        return_list = collection_inquiries.distinct("sender_email", {"sender_email": {"$ne": None}})
     elif type == "suggestion":
-        return_list = collection_suggestions.distinct("client", {"client": {"$ne": None}})
+        return_list = collection_suggestions.distinct("sender_email", {"sender_email": {"$ne": None}})
     else:
         # fail-safe: pydantic catches this before this function is called
         raise HTTPException(status_code=400, detail="Invalid type parameter provided.")
@@ -64,3 +64,5 @@ def getTags(type: str):
         # fail-safe: pydantic catches this before this function is called
         raise HTTPException(status_code=400, detail="Invalid type parameter provided.")
     return {"tags": return_list}
+
+

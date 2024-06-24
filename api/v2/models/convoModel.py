@@ -5,7 +5,7 @@ from datetime import datetime
 
 class EmailInDB(BaseModel):
     message: str
-    sender_type: Literal['Client', 'Company']
+    sender_type: Literal['client', 'company']
     time: datetime
 
 
@@ -21,6 +21,6 @@ class Email(BaseModel):
         """
         return cls(
             body=emailInDB.message,
-            isClient=emailInDB.sender_type == "Client",
+            isClient=emailInDB.sender_type == "client",
             dateTime=emailInDB.time
         )

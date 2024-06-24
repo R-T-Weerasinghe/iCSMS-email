@@ -2,12 +2,13 @@ from datetime import date, timedelta, datetime
 from typing import List, Optional
 from bson import ObjectId
 from fastapi import HTTPException
-
+from pydantic import ValidationError
 from api.v2.dependencies.database import collection_issues, collection_configurations
 from api.v2.models.issuesModel import IssueDetailed, Issue, IssueInDB
 from api.v2.models.convoModel import EmailInDB
 from api.v2.services.utilityService import (get_overdue_datetime, get_first_response_time, get_avg_response_time,
                                             get_resolution_time)
+
 
 def getIssues(
     skip: int, 
@@ -52,15 +53,15 @@ def getIssues(
     #     query["status"] = "New"
     # if imp:
     #     query["tags"] = {"$in": ["important"]}
-    issues = list(collection_issues.find(query).skip(skip).limit(limit))
-
-    for i, issue in enumerate(issues):
-        issue["id"] = str(issue["_id"])
-        del issue["_id"]
-        issues[i] = Issue.convert(IssueInDB(**issue))
+    issues: List[dict] = list(collection_issues.find(query).skip(skip).limit(limit))
+    try:
+        issues_objs = [IssueInDB(**issue) for issue in issues]
+    except ValidationError:
+        raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+    issues_return: List[Issue] = [Issue.convert(issue) for issue in issues_objs]
 
     return {
-        "issues": issues,
+        "issues": issues_return,
         "total": collection_issues.count_documents(query),
         "skip": skip,
         "limit": limit
@@ -74,14 +75,15 @@ def getIssueByThreadId(thread_id: str) -> IssueDetailed:
     issue: dict = collection_issues.find_one({"thread_id": thread_id})
     if not issue:
         raise HTTPException(status_code=404, detail=f"Issue with the thread id {thread_id} not found")
-    issue["id"] = str(issue["_id"])
-    del issue["_id"]
-
-    emails: List[EmailInDB] = issue["issue_convo_summary_arr"]
-    dateOverdue = get_overdue_datetime(issue["start_time"])
+    try:
+        issue_obj = IssueInDB(**issue)
+    except ValidationError:
+        raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+    emails: List[EmailInDB] = issue_obj.issue_convo_summary_arr
+    dateOverdue = get_overdue_datetime(issue_obj.start_time)
     firstResponseTime = get_first_response_time(emails)
     avgResponseTime = get_avg_response_time(emails)
-    resolutionTime = get_resolution_time(emails, issue["status"])
+    resolutionTime = get_resolution_time(emails, issue_obj.status)
 
     return IssueDetailed.convert_additional(
         IssueInDB(**issue), dateOverdue, firstResponseTime, avgResponseTime, resolutionTime

@@ -74,7 +74,7 @@ class IssueDetailed(Issue):
     firstResponseTime: Optional[int] = None  # in minutes
     avgResponseTime: Optional[int] = None  # in minutes
     resolutionTime: Optional[int] = None  # in minutes
-    sentiment: Optional[str] = None
+    sentiment: Optional[float] = None
 
     @classmethod
     def convert_additional(

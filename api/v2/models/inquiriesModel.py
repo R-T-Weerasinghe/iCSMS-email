@@ -69,17 +69,24 @@ class Inquiry(BaseModel):
 
 
 class InquiryDetailed(Inquiry):
-    dateOverdue: Optional[datetime] = None
-    firstResponseTime: Optional[int] = None # in minutes
-    avgResponseTime: Optional[int] = None   # in minutes
-    resolutionTime: Optional[int] = None    # in minutes
-    sentiment: Optional[str] = None
+    dateOverdue: datetime
     emails: List[Email]
+    # for a not replied email, these can be none
+    firstResponseTime: Optional[int] = None  # in minutes
+    avgResponseTime: Optional[int] = None  # in minutes
+    resolutionTime: Optional[int] = None  # in minutes
+    sentiment: Optional[str] = None
 
     @classmethod
-    def convert(cls, inquiryInDB: InquiryInDB) -> 'InquiryDetailed':
+    def convert_additional(
+        cls, inquiryInDB: InquiryInDB,
+        dateOverdue: datetime,
+        firstResponseTime: int | None,
+        avgResponseTime: int | None,
+        resolutionTime: int | None
+    ) -> 'InquiryDetailed':
         """
-        Converts an InquiryInDB object to an InquiryDetailed object.
+        Converts an IssueInDB object to an IssueDetailed object.
         """
         if inquiryInDB.status == "ongoing":
             status = inquiryInDB.ongoing_status
@@ -88,6 +95,7 @@ class InquiryDetailed(Inquiry):
         return cls(
             id=inquiryInDB.thread_id,
             inquiry=inquiryInDB.inquiry_summary,
+            subject=inquiryInDB.thread_subject,
             status=status,
             client=inquiryInDB.sender_email,
             company=inquiryInDB.recepient_email,
@@ -96,13 +104,13 @@ class InquiryDetailed(Inquiry):
             dateOpened=inquiryInDB.start_time,
             dateClosed=inquiryInDB.end_time,
             dateUpdate=inquiryInDB.updated_time,
-            dateOverdue=inquiryInDB.dateOverdue,
+            dateOverdue=dateOverdue,
             effectivity=inquiryInDB.effectivity,
             efficiency=inquiryInDB.efficiency,
-            firstResponseTime=inquiryInDB.firstResponseTime,
-            avgResponseTime=inquiryInDB.avgResponseTime,
-            resolutionTime=inquiryInDB.resolutionTime,
-            sentiment=inquiryInDB.sentiment,
+            firstResponseTime=firstResponseTime,
+            avgResponseTime=avgResponseTime,
+            resolutionTime=resolutionTime,
+            sentiment=inquiryInDB.sentiment_score,
             emails=[Email.convert(email) for email in inquiryInDB.inquiry_convo_summary_arr]
         )
 
