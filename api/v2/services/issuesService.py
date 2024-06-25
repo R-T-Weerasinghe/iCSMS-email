@@ -1,13 +1,13 @@
-from datetime import date, timedelta, datetime, time
+from datetime import date
 from typing import List, Optional
-from bson import ObjectId
 from fastapi import HTTPException
 from pydantic import ValidationError
-from api.v2.dependencies.database import collection_issues, collection_configurations
+
+from api.v2.dependencies.database import collection_issues
 from api.v2.models.issuesModel import IssueDetailed, Issue, IssueInDB
 from api.v2.models.convoModel import EmailInDB
 from api.v2.services.utilityService import (get_overdue_datetime, get_first_response_time, get_avg_response_time,
-                                            get_resolution_time)
+                                            get_resolution_time, build_query)
 
 
 def getIssues(
@@ -27,32 +27,7 @@ def getIssues(
     """
     Get issues based on the given parameters.
     """
-    query = {}
-    if skip is None:
-        skip = 0
-    if limit is None:
-        limit = 10
-    if r:
-        query["recepient_email"] = {"$in": r}
-    if s:
-        query["sender_email"] = {"$in": s}
-    if tags:
-        if allTags:
-            query["products"] = {"$all": tags}
-        else:
-            query["products"] = {"$in": tags}
-    if status:
-        query["status"] = {"$in": status}
-        query["ongoing_status"] = {"$in": status}
-
-    if dateFrom and dateTo:
-        query["start_time"] = {"$gte": datetime.combine(dateFrom, time.min), "$lte": datetime.combine(dateTo, time.min)}
-    if q:
-        query["$text"] = {"$search": q}
-    # if new:
-    #     query["status"] = "New"
-    # if imp:
-    #     query["tags"] = {"$in": ["important"]}
+    query = build_query(skip, limit, "issue", r, s, tags, allTags, status, dateFrom, dateTo, q)
     issues: List[dict] = list(collection_issues.find(query).skip(skip).limit(limit))
     try:
         issues_objs = [IssueInDB(**issue) for issue in issues]

@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from typing import List, Literal
 from pymongo.collection import Collection
 from api.v2.dependencies.database import collection_configurations
@@ -115,6 +115,58 @@ def get_resolution_time(
     last_email = email_list[-1]
     resolution_time = (last_email.time - first_email.time).total_seconds() / 60
     return round(resolution_time)
+
+
+def build_query(
+    skip: int,
+    limit: int,
+    type: Literal["issue", "inquiry", "suggestion"],
+    company:List[str] = None,
+    client: List[str] = None,
+    tags: List[str] = None,
+    allTags: bool = None,
+    status: List[str] = None,
+    dateFrom: date = None,
+    dateTo: date = None,
+    q: str = None,
+) -> dict:
+    """
+    Build a query based on the given parameters.
+
+    Args:
+        skip: Number of records to skip.
+        limit: Number of records to return.
+        type: Type of query. (issue, inquiry, suggestion)
+        company: List of company email addresses. (aka recipient)
+        client: List of client email addresses. (aka sender)
+        tags: List of tags associated with the issue.
+        allTags: Indicates if all tags should be present.
+        status: List of statuses of the issue.
+        dateFrom: Start date for the issue (inclusive).
+        dateTo: End date for the issue (inclusive).
+        q: Search query.
+
+    Returns:
+        dict: The query dict document.
+    """
+    query = {}
+    if company:
+        query["recepient_email"] = {"$in": company}
+    if client:
+        query["sender_email"] = {"$in": client}
+    if tags:
+        if allTags:
+            query["products"] = {"$all": tags}
+        else:
+            query["products"] = {"$in": tags}
+    if status:
+        query["$or"] = [{"status": {"$in": status}}, {"ongoing_status": {"$in": status}}]
+
+    if dateFrom and dateTo:
+        query["start_time"] = {"$gte": datetime.combine(dateFrom, datetime.min.time()), "$lte": datetime.combine(dateTo, datetime.min.time())}
+    if q:
+        query["$text"] = {"$search": q}
+    return query
 
 
 def search_between_collections(

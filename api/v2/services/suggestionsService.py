@@ -4,6 +4,7 @@ from fastapi import HTTPException
 
 from api.v2.dependencies.database import collection_suggestions
 from api.v2.models.suggestionsModel import Suggestion, SuggestionInDB
+from api.v2.services.utilityService import build_query
 
 
 def getSuggestions(
@@ -23,32 +24,7 @@ def getSuggestions(
     """
     Get suggestions based on the given parameters.
     """
-    query = {}
-    if skip is None:
-        skip = 0
-    if limit is None:
-        limit = 10
-    if r:
-        query["recepient_email"] = {"$in": r}
-    if s:
-        query["sender_email"] = {"$in": s}
-    if tags:
-        if allTags:
-            query["products"] = {"$all": tags}
-        else:
-            query["products"] = {"$in": tags}
-    if status:
-        query["status"] = {"$in": status}
-        query["ongoing_status"] = {"$in": status}
-
-    if dateFrom and dateTo:
-        query["start_time"] = {"$gte": dateFrom, "$lte": dateTo}
-    # if q:
-    #     query["$text"] = {"$search": q}
-    # if new:
-    #     query["status"] = "New"
-    # if imp:
-    #     query["tags"] = {"$in": ["important"]}
+    query = build_query(skip, limit, "suggestion", r, s, tags, allTags, status, dateFrom, dateTo, q)
     suggestions = list(collection_suggestions.find(query).skip(skip).limit(limit))
 
     for i, suggestion in enumerate(suggestions):

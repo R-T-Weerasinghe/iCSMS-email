@@ -120,3 +120,5 @@ urllib3==1.26.18
 uvicorn==0.29.0
 wasabi==1.1.2
 weasel==0.3.4
+
+nltk~=3.8.1

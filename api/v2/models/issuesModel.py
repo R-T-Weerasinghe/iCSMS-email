@@ -1,5 +1,4 @@
 from typing import List, Literal, Optional
-from fastapi import Query
 from pydantic import BaseModel
 from datetime import datetime
 

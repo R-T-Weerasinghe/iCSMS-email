@@ -1,5 +1,4 @@
 from typing import List, Literal, Optional
-from fastapi import Query
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -8,29 +7,28 @@ from .convoModel import EmailInDB, Email
 
 class InquiryInDB(BaseModel):
     thread_id: str
+    thread_subject: str
+    recepient_email: str
+    sender_email: str
     inquiry_summary: str
     inquiry_convo_summary_arr: Optional[List[EmailInDB]] = None
     status: Literal['ongoing', 'closed']
     ongoing_status: Optional[Literal['new', 'waiting', 'update']]
-    recepient_email: str
-    sender_email: str
     inquiry_type: Optional[str] = None
     products: Optional[List[str]] = None
-    isOverdue: Optional[bool] = None
+    sentiment_score: Optional[float] = None
     start_time: datetime
-    end_time: Optional[datetime] = None
     updated_time: Optional[datetime] = None
-    effectivity: Optional[int] = None
+    end_time: Optional[datetime] = None
+    effectiveness: Optional[int] = None
     efficiency: Optional[int] = None
-    firstResponseTime: Optional[int] = None  # in minutes
-    avgResponseTime: Optional[int] = None    # in minutes
-    resolutionTime: Optional[int] = None     # in minutes
-    sentiment: Optional[str] = None
+    isOverdue: Optional[bool] = None
 
 
 class Inquiry(BaseModel):
     id: str
     inquiry: str
+    subject: str
     status: Literal['new', 'waiting', 'update', 'closed']
     client: str
     company: str
@@ -54,6 +52,7 @@ class Inquiry(BaseModel):
         return cls(
             id=inquiryInDB.thread_id,
             inquiry=inquiryInDB.inquiry_summary,
+            subject=inquiryInDB.thread_subject,
             status=status,
             client=inquiryInDB.sender_email,
             company=inquiryInDB.recepient_email,
@@ -62,8 +61,7 @@ class Inquiry(BaseModel):
             dateOpened=inquiryInDB.start_time,
             dateClosed=inquiryInDB.end_time,
             dateUpdate=inquiryInDB.updated_time,
-            dateOverdue=None,
-            effectivity=inquiryInDB.effectivity,
+            effectivity=inquiryInDB.effectiveness,
             efficiency=inquiryInDB.efficiency,
         )
 
@@ -72,10 +70,10 @@ class InquiryDetailed(Inquiry):
     dateOverdue: datetime
     emails: List[Email]
     # for a not replied email, these can be none
-    firstResponseTime: Optional[int] = None  # in minutes
-    avgResponseTime: Optional[int] = None  # in minutes
-    resolutionTime: Optional[int] = None  # in minutes
-    sentiment: Optional[str] = None
+    firstResponseTime: int | None = None  # in minutes
+    avgResponseTime: int | None = None  # in minutes
+    resolutionTime: int | None = None  # in minutes
+    sentiment: float = None
 
     @classmethod
     def convert_additional(
@@ -105,7 +103,7 @@ class InquiryDetailed(Inquiry):
             dateClosed=inquiryInDB.end_time,
             dateUpdate=inquiryInDB.updated_time,
             dateOverdue=dateOverdue,
-            effectivity=inquiryInDB.effectivity,
+            effectivity=inquiryInDB.effectiveness,
             efficiency=inquiryInDB.efficiency,
             firstResponseTime=firstResponseTime,
             avgResponseTime=avgResponseTime,
