@@ -70,7 +70,7 @@ async def send_new_trigger(trigger: Trigger):
     
 # update a trigger for a sentiment shift triggers form change     
 
-async def update_triggers_ss(user_name: int, accs_to_check_ss: list[str], lowerSS_notify: bool, ss_lower_bound: int, upperSS_notify: bool, ss_upper_bound: int, is_checking_ss:bool):
+async def update_triggers_ss(user_name: int, accs_to_check_ss: list[str], lowerSS_notify: bool, ss_lower_bound: float, upperSS_notify: bool, ss_upper_bound: float, is_checking_ss:bool):
     try:
         
             

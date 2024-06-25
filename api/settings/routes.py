@@ -155,7 +155,7 @@ async def receive_system_configurations_data(system_config_data: SendSystemConfi
         # making a new config doc
         else:
             try:
-                    result = await collection_configurations.insert_one({
+                    result = collection_configurations.insert_one({
                         "id": 1,
                         "overdue_margin_time": overdue_margin_time
                     })

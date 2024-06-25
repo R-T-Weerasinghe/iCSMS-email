@@ -17,14 +17,16 @@ async def get_current_overall_sentiments( intervalIndays: int):
     n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
     
     # Query MongoDB for documents matching recipients
-    query = {"recipient": {"$in": recipients}, "time": {"$gte": n_days_ago}}
+    query = {"time": {"$gte": n_days_ago}}
     results = collection_email_msgs.find(query, {"_id": 0, "our_sentiment_score": 1})
     
     # Extract our_sentiment_score values
     sentiment_scores = [doc["our_sentiment_score"] for doc in results]
     print(sentiment_scores)
-    
+ 
     total_frequency= len(sentiment_scores)
+    
+    print("TOTAL FREQUENCY--------",total_frequency )
     
     if total_frequency != 0:
         positive_frequency= 0

@@ -1,13 +1,14 @@
 from datetime import datetime, timedelta
 import json
 import os
+from typing import List
 from fastapi import APIRouter, HTTPException
 from pymongo import MongoClient
 # import sys
 # sys.path.append('..') 
 from api.email_filtering_and_info_generation.configurations.database import collection_email_msgs
 from api.email_filtering_and_info_generation.configurations.database import collection_triger_events,collection_trigers,collection_readingEmailAccounts,collection_suggestions, collection_conversations, collection_issues, collection_inquiries, collection_overdue_trigger_events, collection_configurations
-from api.email_filtering_and_info_generation.models import Convo_summary, Email_msg, Inquiry, Issue, Overdue_trig_event,Trigger_event,Reading_email_acc,Suggestion
+from api.email_filtering_and_info_generation.models import Convo_summary, Email_msg, InquiryInDB, IssueInDB, Overdue_trig_event,Trigger_event,Reading_email_acc,Suggestion
 from api.email_filtering_and_info_generation.schemas import individual_email_msg_serial,list_email_msg_serial
 from api.email_filtering_and_info_generation.schemas import individual_trigger_serial,list_trigger_serial
 from api.email_filtering_and_info_generation.schemas import individual_readingEmailAcc_serial, list_readingEmailAcc_serial
@@ -24,7 +25,7 @@ from pathlib import Path
 router = APIRouter()
 
 async def get_all_reading_accounts():
-    documents = await collection_readingEmailAccounts.find({}, {"_id": 0, "address": 1})
+    documents = collection_readingEmailAccounts.find({}, {"_id": 0, "address": 1})
     
     all_reading_email_accs = [doc["address"] for doc in documents]
     
@@ -73,10 +74,10 @@ async def send_convo_summary(convo_summary: Convo_summary):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def update_summary(thread_id: str, new_summary: str, last_updated_time:datetime):
+async def update_summary(thread_id: str, new_summary: str, new_updated_times:datetime):
     result =  collection_conversations.update_one(
         {"thread_id": thread_id},
-        {"$set": {"summary": new_summary, "last_updated_time": last_updated_time}}
+        {"$set": {"summary": new_summary, "updated_times": new_updated_times}}
     )
     
     if result.matched_count == 0:
@@ -85,10 +86,10 @@ async def update_summary(thread_id: str, new_summary: str, last_updated_time:dat
     return {"message": "Summary updated successfully"}
     
 # to send an issue to Issues collection
-async def send_issue(issue: Issue):
+async def send_issue(issue: IssueInDB):
     try:
         # Insert the conversation summary dictionary into the MongoDB collection
-        result = collection_issues.insert_one(issue)
+        result = collection_issues.insert_one(issue.dict())
         
         # Return the ID of the inserted document
         return {"message": "Issue sent successfully", "inserted_id": str(result.inserted_id)}
@@ -97,25 +98,25 @@ async def send_issue(issue: Issue):
 
 
 
-async def update_issue_status(thread_id_to_update:str, new_issue_convo_summary:str, new_status:str, end_time_value:datetime, new_effectiveness:str, new_efficiency:str):
+async def update_issue_status(thread_id_to_update:str, issue_convo_summary_arr:List[dict], updated_time:datetime, new_status:str, new_ongoing_status:str, sentiment_score: float, end_time_value:datetime, new_effectiveness:str, new_efficiency:str):
     try:
         # Update the document with the specified thread_id
         result = collection_issues.update_one(
             {"thread_id": thread_id_to_update},
-            {"$set": {"issue_convo_summary":new_issue_convo_summary,"status": new_status, "end_time": end_time_value, "effectiveness":new_effectiveness, "efficiency":new_efficiency}}
+            {"$set": {"issue_convo_summary_arr":issue_convo_summary_arr,"updated_time":updated_time,"status": new_status, 
+                      "ongoing_status":new_ongoing_status, "sentiment_score":sentiment_score,
+                      "end_time": end_time_value, "effectiveness":new_effectiveness, "efficiency":new_efficiency}}
         )
-        
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
     
 # to send an inquiry to Inquiries collection
-@router.post("/info_and_retrieval/send_inquiry")
-async def send_inquiry(inquiry: Inquiry):
+async def send_inquiry(inquiry: InquiryInDB):
     try:
         # Insert the conversation summary dictionary into the MongoDB collection
-        result = collection_inquiries.insert_one(inquiry)
+        result = collection_inquiries.insert_one(inquiry.dict())
         
         # Return the ID of the inserted document
         return {"message": "Inquiry sent successfully", "inserted_id": str(result.inserted_id)}
@@ -123,12 +124,14 @@ async def send_inquiry(inquiry: Inquiry):
         raise HTTPException(status_code=500, detail=str(e))    
 
 
-async def update_inquiry_status(thread_id_to_update:str, new_inquiry_convo_summary:str, new_status:str, end_time_value:datetime, new_effectiveness:str, new_efficiency:str):
+async def update_inquiry_status(thread_id_to_update:str, new_inquiry_convo_summary:str, updated_time:datetime, new_status:str, new_ongoing_status:str, sentiment_score: float,end_time_value:datetime, new_effectiveness:str, new_efficiency:str):
     try:
         # Update the document with the specified thread_id
         result = collection_inquiries.update_one(
             {"thread_id": thread_id_to_update},
-            {"$set": {"inquiry_convo_summary":new_inquiry_convo_summary, "status": new_status, "end_time": end_time_value, "effectiveness":new_effectiveness, "efficiency":new_efficiency}}
+            {"$set": {"inquiry_convo_summary":new_inquiry_convo_summary, "updated_time":updated_time, 
+                      "status": new_status, "ongoing_status":new_ongoing_status, "sentiment_score":sentiment_score,
+                      "end_time": end_time_value, "effectiveness":new_effectiveness, "efficiency":new_efficiency}}
         )
         
         
@@ -241,6 +244,32 @@ async def get_overdue_issues(overdue_margin_time):
 
     # Execute the aggregation pipeline
     result = list(collection_issues.aggregate(pipeline))
+    return result
+
+async def get_overdue_inquiries(overdue_margin_time):
+    # Calculate the threshold date (start_time + 14 days)
+    threshold_date = datetime.utcnow() - timedelta(days=overdue_margin_time)
+
+    # Aggregation pipeline to filter documents with status 'ongoing' and start_time older than 14 days
+    pipeline = [
+        {
+            "$match": {
+                "status": "ongoing",
+                "start_time": {"$lt": threshold_date},
+                "isOverdue":False
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "thread_id": 1,
+                "recepient_email":1
+            }
+        }
+    ]
+
+    # Execute the aggregation pipeline
+    result = list(collection_inquiries.aggregate(pipeline))
     return result
 
 

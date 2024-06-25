@@ -15,6 +15,7 @@ router = APIRouter()
 async def get_current_overall_sentiments(intervalIndays: int):
    
     result = await services.get_current_overall_sentiments(intervalIndays)
+    print("CURRENT OVERALL SENTIMENTS",result)
     return result
 
 
