@@ -22,7 +22,7 @@ llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_
 # response = model.generate_content("What is the meaning of life?")
 # print(response.text)
 
-def identify_criticality(new_email_msg_array):
+async def identify_criticality(new_email_msg_array):
         
     ciricality_categorization = """High Criticality:
     Description: These emails represent urgent issues that require immediate attention. They could result in financial loss, reputational damage, or significant customer dissatisfaction if not addressed promptly.

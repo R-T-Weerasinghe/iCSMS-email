@@ -1,7 +1,7 @@
 import asyncio
 from api.email_filtering_and_info_generation.email_sending import send_email
-from api.email_filtering_and_info_generation.routes import send_trig_event
-from api.email_filtering_and_info_generation.routes import get_triggers_array
+from api.email_filtering_and_info_generation.services import send_trig_event
+from api.email_filtering_and_info_generation.services import get_triggers_array
 from api.email_filtering_and_info_generation.configurations.database import collection_notificationSendingChannels
 new_email_notification_info_array=[]
 
@@ -15,7 +15,7 @@ new_email_notification_info_array=[]
 
 
 
-async def identify_notifcations(new_email_msg_array):
+async def identify_criticality_notifcations(new_email_msg_array):
     
     triggers_array = await get_triggers_array()
     

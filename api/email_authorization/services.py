@@ -1,22 +1,9 @@
-
-from email.mime.text import MIMEText
-from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
-from api.email_authorization.services import update_authorization_uri
-from google_auth_oauthlib.flow import Flow # type: ignore
-from pathlib import Path
-
-from googleapiclient.discovery import build 
-from google.oauth2.credentials import Credentials
-import os.path 
-import base64 
-from bs4 import BeautifulSoup 
 from datetime import datetime, timedelta, timezone
 import json
 import os
-import time
+from google_auth_oauthlib.flow import Flow 
+from api.email_filtering_and_info_generation.configurations.database import collection_configurations
 import requests
-
 
 state_store = {}
 
@@ -117,53 +104,18 @@ async def login_async(id: int, email_acc_address:str):
     )
     print("authorization_url: ",authorization_url)
     await update_authorization_uri(authorization_url, email_acc_address)
-
-
-
-def send_email(id: int, recepient: str, subject: str, email_body: str, ):
     
-    token_path = f'api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{id}/gmail_token.json'
     
-    if (os.path.exists(token_path)):
-        refresh_token(token_path)
+async def update_authorization_uri(authorization_url: str, email_acc_address: str):
     
-    if not is_token_valid(token_path):
+    doc = {"id":2, "needToAuthorize":True, "needToAuthorizeAddress":email_acc_address, "authorization_url":authorization_url}
+    
+    existing_document = collection_configurations.find_one({"id": 2})
+    
+    if existing_document:
+         # Update the document with the new values
+         collection_configurations.update_one({"id": 2}, {"$set": doc})   
+    else: 
+    
+        collection_configurations.insert_one(doc)
         
-        login_async(id)
-        
-    
-    while(not os.path.exists(token_path)):
-        print("inside waiting loop")
-        time.sleep(5)
-    
-    print("outside of waiting loop")
-    creds = None
-    # SCOPES = [
-    # 'https://www.googleapis.com/auth/gmail.send',
-    # 'https://www.googleapis.com/auth/gmail.modify',
-    # 'https://www.googleapis.com/auth/gmail.readonly',
-    # 'https://www.googleapis.com/auth/gmail.settings.basic'
-    # ]
-    
-    SCOPES = [
-    'https://www.googleapis.com/auth/gmail.modify',
-    'https://www.googleapis.com/auth/gmail.settings.basic'
-    ]
-    
-    
-    
-    creds = Credentials.from_authorized_user_file(f'credentialsForEmails/credentialsForEmail{id}/gmail_token.json', SCOPES)
-
-
-    # Connect to the Gmail API 
-    service = build('gmail', 'v1', credentials=creds) 
-    message = MIMEText(email_body)
-    message['to'] = recepient
-    message['from'] = 'raninduharischandra12@gmail.com'
-    message['subject'] = subject
-    message_body = {
-    'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()
-    }
-    message = service.users().messages().send(userId='me', body=message_body).execute()
-    print('Message Id: %s' % message['id'])
-

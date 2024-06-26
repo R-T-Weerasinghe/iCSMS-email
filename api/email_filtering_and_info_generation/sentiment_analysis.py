@@ -1,7 +1,7 @@
 from external_services.aws_comprehend.sentiment_analysis import analyze_sentiment
 from utils.helpers import scale_score
 
-def identify_sentiments(new_email_msg_array):
+async def identify_sentiments(new_email_msg_array):
     
     for new_email_msg in new_email_msg_array:
         
