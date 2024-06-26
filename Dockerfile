@@ -2,9 +2,15 @@ FROM python:3.12.0-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+# DO NOT CHANGE the order - messes up the cache
+RUN pip3 install torch --index-url https://download.pytorch.org/whl/cpu
 
-RUN pip install -r requirements.txt
+COPY docker-requirements.txt .
+
+RUN pip install -r docker-requirements.txt
+
+# TO be removed
+RUN pip install simplegmail
 
 RUN pip cache purge
 
