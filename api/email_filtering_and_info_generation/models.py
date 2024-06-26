@@ -20,7 +20,6 @@ class Email_msg(BaseModel):
 class Convo_summary(BaseModel):
     thread_id:str
     subject:str
-    updated_times:List[datetime]
     summary:str
     products:List[str]
     
@@ -31,45 +30,34 @@ class Suggestion(BaseModel):
     date:datetime
     recepient:str
     
-class IssueInDB(BaseModel):
+class Issue(BaseModel):
     thread_id:str
-    thread_subject:str
     recepient_email:str
-    sender_email: str
     issue_summary:str
-    issue_convo_summary_arr:List[dict]
-    status:str
-    ongoing_status:Optional[str] = None
+    issue_convo_summary:str
     issue_type:str
-    products:List[str] = []
-    sentiment_score: float
+    prodcuts:List[str]
+    status:str
     start_time:datetime
-    updated_time:datetime
     end_time: Optional[datetime] = None
     effectiveness: Optional[str] = None
     efficiency: Optional[str] = None
     isOverdue:bool
     
 
-class InquiryInDB(BaseModel):
+class Inquiry(BaseModel):
     thread_id:str
-    thread_subject: str
     recepient_email:str
-    sender_email: str
     inquiry_summary:str
-    inquiry_convo_summary_arr:List[dict]
-    status:str
-    ongoing_status:Optional[str] = None
+    inquiry_convo_summary:str
     inquiry_type:str
-    products:List[str] = []
-    sentiment_score: float
+    prodcuts:List[str]
+    product:str
+    status:str
     start_time:datetime
-    updated_time:datetime
     end_time: Optional[datetime] = None
     effectiveness: Optional[str] = None
     efficiency: Optional[str] = None
-    isOverdue:bool
- 
  
     
     
