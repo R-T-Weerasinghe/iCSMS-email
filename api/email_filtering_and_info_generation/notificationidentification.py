@@ -15,7 +15,7 @@ new_email_notification_info_array=[]
 
 
 
-async def identify_notifcations(new_email_msg_array):
+async def identify_criticality_notifcations(new_email_msg_array):
     
     triggers_array = await get_triggers_array()
     

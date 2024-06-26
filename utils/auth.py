@@ -1,7 +1,7 @@
 import requests
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError, jwt
+from jose import JWTError, jwt 
 from pydantic import BaseModel
 
 class Config:

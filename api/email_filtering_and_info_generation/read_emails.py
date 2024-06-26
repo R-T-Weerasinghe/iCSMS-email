@@ -12,7 +12,7 @@ from api.email_filtering_and_info_generation.emailIntegration import integrateEm
 from api.email_filtering_and_info_generation.criticality_identification import identify_criticality
 from api.email_filtering_and_info_generation.format_email_bodies import format_email_bodies
 from api.email_filtering_and_info_generation.issues_identification import identify_issues_inquiries_and_checking_status
-from api.email_filtering_and_info_generation.notificationidentification import identify_notifcations
+from api.email_filtering_and_info_generation.notificationidentification import identify_criticality_notifcations
 from api.email_filtering_and_info_generation.data_masking import mask_email_messages
 from api.email_filtering_and_info_generation.sentiment_analysis import identify_sentiments
 from api.email_filtering_and_info_generation.topic_identification import identify_topics
@@ -47,7 +47,7 @@ email_acc_array = []
 
 state_store = {}
 
-last_email_read_time = ""
+last_email_read_time = None
 
 
 # input the email_acc_array and then return the updated email_acc_array
@@ -90,7 +90,7 @@ async def getEmails(id: int, new_email_msg_array, email_acc_address:str, last_em
     # Connect to the Gmail API 
     service = build('gmail', 'v1', credentials=creds) 
     
-    if last_email_read_time == "":
+    if last_email_read_time is None:
         # Calculate the timestamp for 10 minutes ago
         ten_minutes_ago = datetime.utcnow() - timedelta(minutes=600)
         ten_minutes_ago_unix = int(ten_minutes_ago.timestamp())
@@ -100,8 +100,8 @@ async def getEmails(id: int, new_email_msg_array, email_acc_address:str, last_em
         
     else:
         
-        start_datetime_str = last_email_read_time
-        start_datetime = datetime.strptime(start_datetime_str, "%a, %d %b %Y %H:%M:%S %z")
+     
+        start_datetime = last_email_read_time
 
         # Convert the start_datetime to Unix timestamp
         start_timestamp = int(start_datetime.timestamp())
@@ -193,77 +193,77 @@ async def getEmails(id: int, new_email_msg_array, email_acc_address:str, last_em
 
 
 
-async def read_all_new_emails_old_func(new_email_msg_array):
+# async def read_all_new_emails_old_func(new_email_msg_array):
     
-    #email_acc_array= await get_reading_emails_array()
-    email_acc_array = [{'id': 1, 'address': 'raninduharischandra12@gmail.com', 'nickname': 'ranindu1'}]
-    print("email_scc_array in read all new emails")
-    print(email_acc_array)
-    for email_acc in email_acc_array: 
+#     #email_acc_array= await get_reading_emails_array()
+#     email_acc_array = [{'id': 1, 'address': 'raninduharischandra12@gmail.com', 'nickname': 'ranindu1'}]
+#     print("email_scc_array in read all new emails")
+#     print(email_acc_array)
+#     for email_acc in email_acc_array: 
         
     
          
-        try:
-            gmail = Gmail(client_secret_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{email_acc['id']}/client_secret.json",
-                    creds_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{email_acc['id']}/gmail_token.json")
+#         try:
+#             gmail = Gmail(client_secret_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{email_acc['id']}/client_secret.json",
+#                     creds_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{email_acc['id']}/gmail_token.json")
 
-        except Exception as e:
+#         except Exception as e:
             
-            file_path =f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{email_acc['id']}/gmail_token.json"
-            if os.path.exists(file_path):
-                # Delete the file
-                os.remove(file_path)
+#             file_path =f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{email_acc['id']}/gmail_token.json"
+#             if os.path.exists(file_path):
+#                 # Delete the file
+#                 os.remove(file_path)
                 
-            time.sleep(5)
+#             time.sleep(5)
                 
-            gmail = Gmail(client_secret_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{email_acc['id']}/client_secret.json",
-                    creds_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{email_acc['id']}/gmail_token.json")
+#             gmail = Gmail(client_secret_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{email_acc['id']}/client_secret.json",
+#                     creds_file=f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{email_acc['id']}/gmail_token.json")
         
 
-        query_params = {
-            "newer_than": (1, "day")
-        }
+#         query_params = {
+#             "newer_than": (1, "day")
+#         }
 
-        # get current time
-        current_time = datetime.now(timezone.utc)
-        print("Current time:", current_time)
+#         # get current time
+#         current_time = datetime.now(timezone.utc)
+#         print("Current time:", current_time)
 
-        # get messages
-        messages = gmail.get_messages(query=construct_query(query_params))
-        for message in messages:
+#         # get messages
+#         messages = gmail.get_messages(query=construct_query(query_params))
+#         for message in messages:
 
-            # formatting message_incoming time
-            message_incoming_time = datetime.strptime(message.date, "%Y-%m-%d %H:%M:%S%z")
-            time_difference = current_time - message_incoming_time
+#             # formatting message_incoming time
+#             message_incoming_time = datetime.strptime(message.date, "%Y-%m-%d %H:%M:%S%z")
+#             time_difference = current_time - message_incoming_time
 
-            # calculating time difference
-            time_difference_minutes = time_difference.total_seconds() / 60
-            print("time difference in minutes")
-            print(time_difference_minutes)
+#             # calculating time difference
+#             time_difference_minutes = time_difference.total_seconds() / 60
+#             print("time difference in minutes")
+#             print(time_difference_minutes)
 
-            # checking whether the msg came in the last 10 mins
-            if abs(time_difference_minutes) <= 500:
-                # print("Subject: " + message.subject)
-                # print("To: " + message.recipient)
-                # print("From: " + message.sender)
-                # print("Subject: " + message.subject)
-                # print("Date: " + message.date)
-                # print("message incoming time", message_incoming_time)
-                # make a new email_msg dictionary
-                email_msg_dict={"id": message.id,"time":message_incoming_time, "recipient": message.recipient, "sender": message.sender, "subject": message.subject,
-                                "thread_id": message.thread_id, "body":message.snippet, "criticality_category":"", "org_sentiment_score":0, "our_sentiment_score":0, "products":[], "isSuggestion":False, "isIssue":False, "isInquiry":False}
+#             # checking whether the msg came in the last 10 mins
+#             if abs(time_difference_minutes) <= 500:
+#                 # print("Subject: " + message.subject)
+#                 # print("To: " + message.recipient)
+#                 # print("From: " + message.sender)
+#                 # print("Subject: " + message.subject)
+#                 # print("Date: " + message.date)
+#                 # print("message incoming time", message_incoming_time)
+#                 # make a new email_msg dictionary
+#                 email_msg_dict={"id": message.id,"time":message_incoming_time, "recipient": message.recipient, "sender": message.sender, "subject": message.subject,
+#                                 "thread_id": message.thread_id, "body":message.snippet, "criticality_category":"", "org_sentiment_score":0, "our_sentiment_score":0, "products":[], "isSuggestion":False, "isIssue":False, "isInquiry":False}
 
-                 # append the new email msg dict to the new_email_msg_array
-                print("appending a msg to the new email msg array")
-                new_email_msg_array.append(email_msg_dict)
+#                  # append the new email msg dict to the new_email_msg_array
+#                 print("appending a msg to the new email msg array")
+#                 new_email_msg_array.append(email_msg_dict)
 
-                # print("Preview: " + message.snippet)
-                # print("Message Body: " + message.plain)
+#                 # print("Preview: " + message.snippet)
+#                 # print("Message Body: " + message.plain)
 
 async def read_all_new_emails(new_email_msg_array, last_email_read_time):
     
     email_acc_array = await get_reading_emails_array()
-    # email_acc_array = [{'id': 1, 'address': 'raninduharischandra12@gmail.com', 'nickname': 'ranindu1'}]
+ 
     
 
     
@@ -295,47 +295,48 @@ async def repeat_every_10mins():
     print("it's happening")
     print("read_all_new_emails happening")
     new_email_msg_array = []
-    last_email_read_time = ""
+    last_email_read_time = None
     await read_all_new_emails(new_email_msg_array, last_email_read_time)
     print("\n")
     print("\n")
     # print("RAW READ NEW EMAIL MESG ARRAY", new_email_msg_array)
     mask_email_messages(new_email_msg_array)
-    #print("MASKED EMAIL MESSAGES", new_email_msg_array)
-    # await format_email_bodies(new_email_msg_array)
-    # print("\n")
-    # print("\n formatted email bodies")
-    # print("\n")
-    # print("formatted EMAIL BODIES----------",new_email_msg_array)
-    # identify_sentiments(new_email_msg_array)
-    # identify_criticality(new_email_msg_array)
-    # print("\n")
-    # print("\n criticality identified emails")
-    # print("\n")
-    # print(new_email_msg_array)
-    # # #await identify_notifcations(new_email_msg_array)
-    # await identify_topics(new_email_msg_array)
-    # print("\n")
-    # print("\n Products identified emails")
-    # print("\n")
-    # print("emails with topics",new_email_msg_array)
-    # # # print(new_email_msg_array)
-    # # #print(new_email_msg_array)
-    # await identify_issues_inquiries_and_checking_status(new_email_msg_array) # make sure to perform this before the coversations_summarizing
-    # # print("---------------------------------------finished identify issues------------------------------")
-    # print("\n")
-    # print("\n Issues and Inquiries identified emails")
-    # print("\n")
-    # print(new_email_msg_array)
-    # await identify_and_summarize_suggestions(new_email_msg_array)
-    # print("\n")
-    # print("\n Suggestions identified emails")
-    # print("\n")
-    # print(new_email_msg_array)
-    # # print("---------------------------------------finished identifying summaries------------------------")
+    print("MASKED EMAIL MESSAGES", new_email_msg_array)
+    await format_email_bodies(new_email_msg_array)
+    print("\n")
+    print("\n formatted email bodies")
+    print("\n")
+    print("formatted EMAIL BODIES----------",new_email_msg_array)
+    await identify_sentiments(new_email_msg_array)
+    await identify_criticality(new_email_msg_array)
+    print("\n")
+    print("\n criticality identified emails")
+    print("\n")
+    print(new_email_msg_array)
+    await identify_criticality_notifcations()
+    # #await identify_notifcations(new_email_msg_array)
+    await identify_topics(new_email_msg_array)
+    print("\n")
+    print("\n Products identified emails")
+    print("\n")
+    print("emails with topics",new_email_msg_array)
     # # print(new_email_msg_array)
-    # await push_new_emails_to_DB(new_email_msg_array)
-    # print("database update successful")
+    # #print(new_email_msg_array)
+    await identify_issues_inquiries_and_checking_status(new_email_msg_array) # make sure to perform this before the coversations_summarizing
+    # print("---------------------------------------finished identify issues------------------------------")
+    print("\n")
+    print("\n Issues and Inquiries identified emails")
+    print("\n")
+    print(new_email_msg_array)
+    await identify_and_summarize_suggestions(new_email_msg_array)
+    print("\n")
+    print("\n Suggestions identified emails")
+    print("\n")
+    print(new_email_msg_array)
+    # print("---------------------------------------finished identifying summaries------------------------")
+    # print(new_email_msg_array)
+    await push_new_emails_to_DB(new_email_msg_array)
+    print("database update successful")
     summarize_conversations(new_email_msg_array)
     print("conversation summaries identified")
     
@@ -346,47 +347,47 @@ async def repeat_every_10mins():
         time.sleep(max(0, next_time - time.time()))
         try:
             new_email_msg_array = []
-            last_email_read_time = ""
             await read_all_new_emails(new_email_msg_array, last_email_read_time)
             print("\n")
             print("\n")
             # print("RAW READ NEW EMAIL MESG ARRAY", new_email_msg_array)
             mask_email_messages(new_email_msg_array)
-            #print("MASKED EMAIL MESSAGES", new_email_msg_array)
-            # await format_email_bodies(new_email_msg_array)
-            # print("\n")
-            # print("\n formatted email bodies")
-            # print("\n")
-            # print("formatted EMAIL BODIES----------",new_email_msg_array)
-            # identify_sentiments(new_email_msg_array)
-            # identify_criticality(new_email_msg_array)
-            # print("\n")
-            # print("\n criticality identified emails")
-            # print("\n")
-            # print(new_email_msg_array)
-            # # #await identify_notifcations(new_email_msg_array)
-            # await identify_topics(new_email_msg_array)
-            # print("\n")
-            # print("\n Products identified emails")
-            # print("\n")
-            # print("emails with topics",new_email_msg_array)
-            # # # print(new_email_msg_array)
-            # # #print(new_email_msg_array)
-            # await identify_issues_inquiries_and_checking_status(new_email_msg_array) # make sure to perform this before the coversations_summarizing
-            # # print("---------------------------------------finished identify issues------------------------------")
-            # print("\n")
-            # print("\n Issues and Inquiries identified emails")
-            # print("\n")
-            # print(new_email_msg_array)
-            # await identify_and_summarize_suggestions(new_email_msg_array)
-            # print("\n")
-            # print("\n Suggestions identified emails")
-            # print("\n")
-            # print(new_email_msg_array)
-            # # print("---------------------------------------finished identifying summaries------------------------")
+            print("MASKED EMAIL MESSAGES", new_email_msg_array)
+            await format_email_bodies(new_email_msg_array)
+            print("\n")
+            print("\n formatted email bodies")
+            print("\n")
+            print("formatted EMAIL BODIES----------",new_email_msg_array)
+            await identify_sentiments(new_email_msg_array)
+            await identify_criticality(new_email_msg_array)
+            print("\n")
+            print("\n criticality identified emails")
+            print("\n")
+            print(new_email_msg_array)
+            await identify_criticality_notifcations()
+            # #await identify_notifcations(new_email_msg_array)
+            await identify_topics(new_email_msg_array)
+            print("\n")
+            print("\n Products identified emails")
+            print("\n")
+            print("emails with topics",new_email_msg_array)
             # # print(new_email_msg_array)
-            # await push_new_emails_to_DB(new_email_msg_array)
-            # print("database update successful")
+            # #print(new_email_msg_array)
+            await identify_issues_inquiries_and_checking_status(new_email_msg_array) # make sure to perform this before the coversations_summarizing
+            # print("---------------------------------------finished identify issues------------------------------")
+            print("\n")
+            print("\n Issues and Inquiries identified emails")
+            print("\n")
+            print(new_email_msg_array)
+            await identify_and_summarize_suggestions(new_email_msg_array)
+            print("\n")
+            print("\n Suggestions identified emails")
+            print("\n")
+            print(new_email_msg_array)
+            # print("---------------------------------------finished identifying summaries------------------------")
+            # print(new_email_msg_array)
+            await push_new_emails_to_DB(new_email_msg_array)
+            print("database update successful")
             summarize_conversations(new_email_msg_array)
             print("conversation summaries identified")
                     
