@@ -1,15 +1,13 @@
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException
 from api.settings.models import IntergratingEmailData, NotiSendingChannelsRecord
-from typing import Dict, Any, List
+from typing import Dict, Any
 from api.email_filtering_and_info_generation.emailIntegration import integrateEmail
 from api.email_filtering_and_info_generation.configurations.database import  collection_suggestions,collection_readingEmailAccounts, collection_configurations
-from api.email_filtering_and_info_generation.services import get_reading_emails_array
+from api.email_filtering_and_info_generation.routes import get_reading_emails_array
 from api.settings.models import Trigger
 from fastapi.responses import JSONResponse
 import shutil
-
-from api.suggestions_page.models import ProductsResponse, RecepientsResponse, SuggestionsData
 
 
 
@@ -17,7 +15,7 @@ router = APIRouter()
 
 
 # filtered suggestions listener
-@router.get("/suggestion-filtering/get_filtered_suggestions", response_model=List[SuggestionsData])
+@router.get("/suggestion-filtering/get_filtered_suggestions")
 def get_filtered_suggestions(intervalIndays: int, productSelected: str, recipientEmailSelected: str):
     
     n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
@@ -47,7 +45,7 @@ def get_filtered_suggestions(intervalIndays: int, productSelected: str, recipien
     
     suugestions_query_result = collection_suggestions.find(query)
     
-    suggestions_dict_list: List[SuggestionsData] = []
+    suggestions_dict_list = []
     
     if suugestions_query_result:
         
@@ -58,16 +56,16 @@ def get_filtered_suggestions(intervalIndays: int, productSelected: str, recipien
             # Extract the date in "yyyy-mm-dd" format
             date_str = dt.date().isoformat()
             
-            suggestion = SuggestionsData(receiver=doc["recepient"], date= date_str, products= doc["products"], 
-                          suggestion= doc["suggestion"])
+            suggestion = {"receiver":doc["recepient"], "date":date_str, "products":doc["products"], 
+                          "suggestion":doc["suggestion"]}
             
             suggestions_dict_list.append(suggestion)
             
     
-    result =  suggestions_dict_list 
+    result = {"suggestionsData": suggestions_dict_list} 
     return JSONResponse(content=result)    
 
-@router.get("/suggestion-filtering/get_all_recepients", response_model=RecepientsResponse)
+@router.get("/suggestion-filtering/get_all_recepients")
 async def get_all_recepients():
     
     recepients = []
@@ -76,10 +74,10 @@ async def get_all_recepients():
     for doc in cursor:
         recepients.append(doc["address"])
     
-    result = RecepientsResponse(recepients=recepients)
-    return result  
+    result = {"recepients", recepients}
+    return JSONResponse(content=result)  
 
-@router.get("/suggestion-filtering/get_all_products", response_model=ProductsResponse)
+@router.get("/suggestion-filtering/get_all_products")
 async def get_all_products():
     
     products=[]
@@ -89,8 +87,8 @@ async def get_all_products():
     if cursor_doc:
         products = cursor_doc.get("products", [])
     
-    result = ProductsResponse(products = products)
-    return result
+    result = {"products":products}
+    return JSONResponse(content=result) 
     
     
     

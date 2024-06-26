@@ -1,6 +1,6 @@
 import os
 from api.email_filtering_and_info_generation.models import Reading_email_acc
-from api.email_filtering_and_info_generation.services import send_reading_email_account, get_reading_emails_array
+from api.email_filtering_and_info_generation.routes import send_reading_email_account, get_reading_emails_array
 
 
 
