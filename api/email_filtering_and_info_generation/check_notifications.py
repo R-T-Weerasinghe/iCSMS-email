@@ -5,7 +5,7 @@ import time
 from simplegmail import Gmail
 from api.email_filtering_and_info_generation.configurations.database import collection_email_msgs, collection_inquiries,collection_issues, collection_notificationSendingChannels, collection_configurations
 from api.email_filtering_and_info_generation.email_sending import send_email
-from api.email_filtering_and_info_generation.routes import get_overall_sentiment_value, get_overdue_issues, get_triggers_array, send_overdue_trigger_event, send_trig_event
+from api.email_filtering_and_info_generation.services import get_overall_sentiment_value, get_overdue_inquiries, get_overdue_issues, get_triggers_array, send_overdue_trigger_event, send_trig_event
 
 
 interval = 60
@@ -30,7 +30,24 @@ def get_all_reading_email_addresses():
 
     return addresses
 
-
+async def identify_overdue_inquiries():
+    document = collection_configurations.find_one({"id":1})
+    overdue_margin_time = 14
+    
+    if document:
+        overdue_margin_time = document.get("overdue_margin_time")
+        
+        new_overdue_inquiries = await get_overdue_inquiries(overdue_margin_time) 
+        
+        for new_overdue_inquiry in new_overdue_inquiries:
+            
+            # update the issues collection
+            result = collection_inquiries.update_one(
+            {"thread_id": new_overdue_inquiry["thread_id"]},
+            {"$set": {"isOverdue":True}}
+            )
+    else:
+        collection_configurations.insert_one({"id":1, "overdue_margin_time":14, "products":[]})
 
 async def check_sentiment_threshold_notification_condition():
     
@@ -68,7 +85,7 @@ async def check_sentiment_threshold_notification_condition():
                     
                     ss_trig_type = "none"
                     
-                    if overall_sentiments_dict[f"{reading_email_address}"] < trigger["ss_lower_bound"][f"{reading_email_address}"]:
+                    if overall_sentiments_dict[f"{reading_email_address}"] < trigger["ss_lower_bound"]:
                         
                         trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_id":trigger["user_id"], "is_lower_bound_triggered":'yes',  
                                     "is_upper_bound_triggered":'no', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
@@ -81,7 +98,7 @@ async def check_sentiment_threshold_notification_condition():
                         
                     
                     
-                    if overall_sentiments_dict[f"{reading_email_address}"]  > trigger["ss_upper_bound"][f"{reading_email_address}"]:
+                    if overall_sentiments_dict[f"{reading_email_address}"]  > trigger["ss_upper_bound"]:
                         
                         trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_id":trigger["user_id"], "is_lower_bound_triggered":'no', 
                                     "is_upper_bound_triggered":'yes', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
@@ -124,7 +141,7 @@ async def check_sentiment_threshold_notification_condition():
                                         threshold of {trigger["ss_upper_bound"]}. At the time of the sending of this email,
                                         the overall sentiment score of the above mentioned email account was 
                                         recorded to be {overall_sentiments_dict[reading_email_address]}.
-                                        Note that the above score is based upon the emails that were received within the past 14 days."""
+                                        Note that the above score is based upon the emails that were received within the past 29 days."""
                                     
                                     if ss_trig_type == "lower" or ss_trig_type == "upper":
                                         
@@ -153,7 +170,7 @@ async def check_sentiment_threshold_notification_condition():
                 
                 ss_trig_type = "none"
                 
-                if overall_sentiments_dict["overall"] < trigger["ss_lower_bound"][f"{reading_email_address}"]:
+                if overall_sentiments_dict["overall"] < trigger["ss_lower_bound"]:
                     
                     trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_id":trigger["user_id"], "is_lower_bound_triggered":'yes',  
                                   "is_upper_bound_triggered":'no', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
@@ -166,7 +183,7 @@ async def check_sentiment_threshold_notification_condition():
                     
                    
                 
-                if overall_sentiments_dict["overall"]  > trigger["ss_upper_bound"][f"{reading_email_address}"]:
+                if overall_sentiments_dict["overall"]  > trigger["ss_upper_bound"]:
                     
                     trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_id":trigger["user_id"], "is_lower_bound_triggered":'no', 
                                   "is_upper_bound_triggered":'yes', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
@@ -199,7 +216,7 @@ async def check_sentiment_threshold_notification_condition():
                                 At the time of the sending of this email,
                                 the overall sentiment score of the whole customer care email system was 
                                 recorded to be {overall_sentiments_dict[reading_email_address]}. 
-                                Note that the above score is based upon the emails that were received within the past 14 days."""
+                                Note that the above score is based upon the emails that were received within the past 29 days."""
                             
                             # setting up subject and message for upper threshold trigger
                             elif ss_trig_type == "upper":
@@ -209,7 +226,7 @@ async def check_sentiment_threshold_notification_condition():
                                 threshold of {trigger["ss_upper_bound"]}. At the time of the sending of this email,
                                 the overall sentiment score of the whole customer care email system was  
                                 recorded to be {overall_sentiments_dict[reading_email_address]}.
-                                Note that the above score is based upon the emails that were received within the past 14 days."""
+                                Note that the above score is based upon the emails that were received within the past 29 days."""
                             
                             if ss_trig_type == "lower" or ss_trig_type == "upper":
                                 
@@ -229,7 +246,7 @@ async def check_sentiment_threshold_notification_condition():
     
     
     
-async def check_overdue_emails():
+async def check_overdue_issues():
     
     document = collection_configurations.find_one({"id":1})
     overdue_margin_time = 14
@@ -275,7 +292,7 @@ async def check_overdue_emails():
                     
                         # setting up subject and messages
                             
-                            subject = f"Overdue Issue recorded from {new_overdue_issue["recepient_email"]}"
+                            subject = f"""Overdue Issue recorded from {new_overdue_issue["recepient_email"]}"""
                             message = f"""The following issue has overdued. It has been going over for more than {overdue_margin_time} days.\n
                             The issue:\n
                             {new_overdue_issue["issue_summary"]}"""
@@ -304,7 +321,8 @@ async def check_notifications_for_managers():
             # Check if it's time to run the condition check
             if now.hour == 0 and now.minute == 0:
                 await check_sentiment_threshold_notification_condition()
-                await check_overdue_emails()
+                await check_overdue_issues()
+                await identify_overdue_inquiries()
                 time.sleep(60)  # Sleep for 1 minute to avoid multiple checks within the same minute
 
             elif now.hour == 12 and now.minute == 0:
