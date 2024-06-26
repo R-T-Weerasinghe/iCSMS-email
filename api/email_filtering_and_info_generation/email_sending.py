@@ -2,7 +2,7 @@
 from email.mime.text import MIMEText
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
-from api.email_authorization.services import update_authorization_uri
+from api.email_filtering_and_info_generation.routes import update_authorization_uri
 from google_auth_oauthlib.flow import Flow # type: ignore
 from pathlib import Path
 
