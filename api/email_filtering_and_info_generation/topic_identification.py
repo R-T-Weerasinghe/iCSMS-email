@@ -3,7 +3,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from api.email_filtering_and_info_generation.config import API_KEY  
 import google.generativeai as genai
 import os
-from api.email_filtering_and_info_generation.services import getProductsList
+from api.email_filtering_and_info_generation.routes import getProductsList
 from dotenv import load_dotenv
 import json
 
