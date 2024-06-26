@@ -1,6 +1,7 @@
 
 from langchain_google_genai import ChatGoogleGenerativeAI
-from api.email_filtering_and_info_generation.routes import send_convo_summary, update_summary
+from api.email_filtering_and_info_generation.models import Convo_summary
+from api.email_filtering_and_info_generation.services import send_convo_summary, update_summary
  
 import google.generativeai as genai
 import os
@@ -43,6 +44,8 @@ async def summarize_conversations(new_email_msg_array):
             
             full_convo_text = new_email_msg["body"] + " " + prev_summary
             
+            new_updated_times = convo_summary_doc['updated_times'].append(new_email_msg["time"])
+            
         else:
             
             full_convo_text = new_email_msg["body"]
@@ -64,12 +67,16 @@ async def summarize_conversations(new_email_msg_array):
         # at last adding the new_email_id to the array
         
         if new_email_msg["thread_id"] in thread_id_list:
-             update_summary(new_email_msg["thread_id"], response.content)
+             await update_summary(new_email_msg["thread_id"], response.content, new_updated_times)
         
         else:
         
-            new_convo_summary = {"thread_id":new_email_msg["thread_id"], "subject":new_email_msg["subject"], "summary":response.content,
-                                "email_ids":email_ids, "products":new_email_msg["products"]}
+            new_convo_summary = Convo_summary(
+                                thread_id=new_email_msg["thread_id"], 
+                                subject = new_email_msg["subject"], 
+                                updated_times= [new_email_msg["time"]], 
+                                summary=response.content,
+                                products=new_email_msg["products"])
             
             await send_convo_summary(new_convo_summary)
         

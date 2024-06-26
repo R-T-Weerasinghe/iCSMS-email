@@ -3,7 +3,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import os
 
-from api.email_filtering_and_info_generation.routes import send_suggestion
+from api.email_filtering_and_info_generation.services import send_suggestion
 
 load_dotenv()
 google_api_key = os.getenv("GOOGLE_API_KEY")

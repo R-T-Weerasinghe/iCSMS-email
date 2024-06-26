@@ -41,4 +41,5 @@ async def search_email_route(params: EmailRequest):
 #         skip=skip
 #     )
 
+# TODO: add a model to handle the params instead of writing them all out
 # CHECKOUT: https://chat.openai.com/share/dd0445f9-3bed-441e-9fcb-63aac025aa84
