@@ -9,12 +9,12 @@ router = APIRouter()
 
 @router.get("/threads/hot-threads", response_model=ThreadSummaryResponse)
 async def get_hot_threads():
-    return getHotThreads()
+    return await getHotThreads()
 
 
 @router.get("/threads", response_model=AllThreadsSummaryResponse)
 async def get_all_threads():
-    return getAllThreads()
+    return await getAllThreads()
 
 
 
