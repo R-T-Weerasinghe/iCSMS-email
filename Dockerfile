@@ -12,6 +12,8 @@ RUN pip install -r docker-requirements.txt
 # TO be removed
 RUN pip install simplegmail
 
+RUN pip install python-jose
+
 RUN pip cache purge
 
 COPY . .
