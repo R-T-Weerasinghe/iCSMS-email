@@ -166,6 +166,9 @@ def build_query(
         query["start_time"] = {"$gte": datetime.combine(dateFrom, datetime.min.time()), "$lte": datetime.combine(dateTo, datetime.min.time())}
     if q:
         query["$text"] = {"$search": q}
+
+    if type == "suggestion" and dateFrom and dateTo:
+        query["date"] = {"$gte": datetime.combine(dateFrom, datetime.min.time()), "$lte": datetime.combine(dateTo, datetime.min.time())}
     return query
 
 

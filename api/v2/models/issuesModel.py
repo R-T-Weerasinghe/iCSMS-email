@@ -20,8 +20,8 @@ class IssueInDB(BaseModel):
     start_time: datetime
     updated_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
-    effectiveness: Optional[int] = None
-    efficiency: Optional[int] = None
+    effectiveness: Optional[str] = None
+    efficiency: Optional[str] = None
     isOverdue: Optional[bool] = None
 
 
@@ -37,8 +37,8 @@ class Issue(BaseModel):
     dateClosed: Optional[datetime] = None
     dateUpdate: Optional[datetime] = None
     isOverdue: Optional[bool] = None
-    effectivity: Optional[int] = None
-    efficiency: Optional[int] = None
+    effectivity: Optional[str] = None
+    efficiency: Optional[str] = None
 
     @classmethod
     def convert(cls, issueInDB: IssueInDB) -> 'Issue':
