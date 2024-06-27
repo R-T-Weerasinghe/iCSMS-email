@@ -1,6 +1,7 @@
 from datetime import date
 from typing import List, Optional
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from api.v2.dependencies.database import collection_suggestions
 from api.v2.models.suggestionsModel import Suggestion, SuggestionInDB
@@ -25,15 +26,15 @@ def getSuggestions(
     Get suggestions based on the given parameters.
     """
     query = build_query(skip, limit, "suggestion", r, s, tags, allTags, status, dateFrom, dateTo, q)
-    suggestions = list(collection_suggestions.find(query).skip(skip).limit(limit))
-
-    for i, suggestion in enumerate(suggestions):
-        suggestion["id"] = str(suggestion["_id"])
-        del suggestion["_id"]
-        suggestions[i] = Suggestion.convert(SuggestionInDB(**suggestion))
+    suggestions: List[dict] = list(collection_suggestions.find(query).skip(skip).limit(limit))
+    try:
+        suggestions_objs: List[SuggestionInDB] = [SuggestionInDB(**suggestion) for suggestion in suggestions]
+    except ValidationError:
+        raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+    suggestions_return: List[Suggestion] = [Suggestion.convert(suggestion) for suggestion in suggestions_objs]
 
     return {
-        "suggestions": suggestions,
+        "suggestions": suggestions_return,
         "total": collection_suggestions.count_documents(query),
         "skip": skip,
         "limit": limit
