@@ -54,7 +54,8 @@ async def summarize_conversations(new_email_msg_array):
         
         
         conversation_summarizing_script = f"""Write a summary of this text '{full_convo_text}'. The summary should summarize what the above email conversation is about and 
-        it shoudl be able to give the reader an undersating about the email conversation in a very short time. Also, only output the summary. Don't output anything else."""
+        it shoudl be able to give the reader an undersating about the email conversation in a very short time. Also, only output the summary. 
+        Don't output anything else.These emails are either ones that came to a customer care email account of a company, or the emails sent by that company to their customers, so provide the summary as you are summarzing these to a company manager. """
         
         # Send the full convo text to Gemini for summarizing
         response = llm.invoke(conversation_summarizing_script)  
