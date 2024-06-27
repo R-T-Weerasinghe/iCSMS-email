@@ -66,7 +66,7 @@ async def send_suggestion(suggestion: Suggestion):
 async def send_convo_summary(convo_summary: Convo_summary):
     try:
         # Insert the conversation summary dictionary into the MongoDB collection
-        result = collection_conversations.insert_one(convo_summary)
+        result = collection_conversations.insert_one(convo_summary.dict())
         
         # Return the ID of the inserted document
         return {"message": "Conversation summary sent successfully", "inserted_id": str(result.inserted_id)}
