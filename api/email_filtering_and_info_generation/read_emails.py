@@ -4,6 +4,9 @@ import asyncio
 import json
 import re
 
+from email.utils import parsedate_to_datetime
+from pytz import timezone, utc
+
 from simplegmail import Gmail # type: ignore
 from simplegmail.query import construct_query # type: ignore
 from datetime import datetime, timedelta, timezone
@@ -134,6 +137,10 @@ async def getEmails(id: int, new_email_msg_array, email_acc_address:str, last_em
             for header in headers:
                 if header['name'] == 'Date':
                     metadata['Received Time'] = header['value']
+                    received_datetime = parsedate_to_datetime(metadata['Received Time'])
+
+                    # Convert to UTC timezone
+                    metadata['Received Time'] = received_datetime.astimezone(utc)
                     
                     # update the the last email read time, bcz the first email of the list is the latest one.
                     if messages[0]['id']==msg['id']:

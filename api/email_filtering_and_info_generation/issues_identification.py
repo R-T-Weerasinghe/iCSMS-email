@@ -225,7 +225,8 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                                             "time":new_email_msg['time'],
                                             "message":issue_summary}
                 
-                new_issue_convo_summary_arr = current_issue_convo_summary_arr.append(new_issue_convo_summary_dict)
+                current_issue_convo_summary_arr.append(new_issue_convo_summary_dict)
+                new_issue_convo_summary_arr = current_issue_convo_summary_arr
                 
                 issue_convo_summary_text_form = ""
                 

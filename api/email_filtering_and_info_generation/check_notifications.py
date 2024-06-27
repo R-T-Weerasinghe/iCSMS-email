@@ -3,7 +3,7 @@ import os
 import time
 
 from simplegmail import Gmail
-from api.email_filtering_and_info_generation.configurations.database import collection_email_msgs, collection_inquiries,collection_issues, collection_notificationSendingChannels, collection_configurations
+from api.email_filtering_and_info_generation.configurations.database import collection_readingEmailAccounts, collection_inquiries,collection_issues, collection_notificationSendingChannels, collection_configurations
 from api.email_filtering_and_info_generation.email_sending import send_email
 from api.email_filtering_and_info_generation.services import get_overall_sentiment_value, get_overdue_inquiries, get_overdue_issues, get_triggers_array, send_overdue_trigger_event, send_trig_event
 
@@ -24,7 +24,7 @@ def get_all_reading_email_addresses():
     
 
     # Retrieve all documents from the collection
-    documents = collection_email_msgs.find({}, {"address": 1, "_id": 0})  # Project only the 'address' field
+    documents = collection_readingEmailAccounts.find({}, {"address": 1, "_id": 0})  # Project only the 'address' field
 
     addresses = [doc["address"] for doc in documents if "address" in doc]
 
@@ -87,9 +87,11 @@ async def check_sentiment_threshold_notification_condition():
                     
                     if overall_sentiments_dict[f"{reading_email_address}"] < trigger["ss_lower_bound"]:
                         
-                        trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_name":trigger["user_name"], "is_lower_bound_triggered":'yes',  
+                        trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_name":trigger["user_name"],
+                                      "email_msg_or_thread_id":None,"recepient_email":reading_email_address, "sender_email":None, "time":datetime.utcnow(),
+                                      "is_lower_bound_triggered":'yes',  
                                     "is_upper_bound_triggered":'no', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
-                                    "recepient email": reading_email_address}
+                                    }
                         
                                         
                         send_trig_event(trig_event)
@@ -100,9 +102,11 @@ async def check_sentiment_threshold_notification_condition():
                     
                     if overall_sentiments_dict[f"{reading_email_address}"]  > trigger["ss_upper_bound"]:
                         
-                        trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_name":trigger["user_name"], "is_lower_bound_triggered":'no', 
+                        trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_name":trigger["user_name"], 
+                                      "email_msg_or_thread_id":None,"recepient_email":reading_email_address, "sender_email":None, "time":datetime.utcnow(),
+                                      "is_lower_bound_triggered":'no', 
                                     "is_upper_bound_triggered":'yes', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
-                                    "recepient email": reading_email_address}
+                                    }
                         
                         send_trig_event(trig_event)
                         
@@ -172,9 +176,11 @@ async def check_sentiment_threshold_notification_condition():
                 
                 if overall_sentiments_dict["overall"] < trigger["ss_lower_bound"]:
                     
-                    trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_name":trigger["user_name"], "is_lower_bound_triggered":'yes',  
+                    trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_name":trigger["user_name"], 
+                                  "email_msg_or_thread_id":None,"recepient_email":"overall", "sender_email":None, "time":datetime.utcnow(),
+                                  "is_lower_bound_triggered":'yes',  
                                   "is_upper_bound_triggered":'no', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
-                                  "recepient email": "overall"}
+                                 }
                     
                                      
                     send_trig_event(trig_event)
@@ -185,9 +191,11 @@ async def check_sentiment_threshold_notification_condition():
                 
                 if overall_sentiments_dict["overall"]  > trigger["ss_upper_bound"]:
                     
-                    trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_name":trigger["user_name"], "is_lower_bound_triggered":'no', 
+                    trig_event = {"triggered_trig_id":trigger["trigger_id"], "user_name":trigger["user_name"],
+                                  "email_msg_or_thread_id":None,"recepient_email":"overall", "sender_email":None, "time":datetime.utcnow(),
+                                  "is_lower_bound_triggered":'no', 
                                   "is_upper_bound_triggered":'yes', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
-                                  "recepient email": "overall"}
+                                  }
                     
                     send_trig_event(trig_event)
                     
@@ -195,7 +203,7 @@ async def check_sentiment_threshold_notification_condition():
                 
                 if ss_trig_type != "none":
                     
-                    notific_channel = collection_notificationSendingChannels.find({"user_name":trigger["user_name"]})
+                    notific_channel = collection_notificationSendingChannels.find_one({"user_name":trigger["user_name"]})
                     
                     if notific_channel:
                         # Access the noti_sending_emails array
@@ -270,7 +278,7 @@ async def check_overdue_issues():
             
             if new_overdue_issue["recepient_email"] in trigger["accs_to_check_overdue_emails"]:
                 
-                new_overdue_trig = {"triggered_trig_id":trigger['triggered_trig_id'], "user_name":trigger['user_name'],
+                new_overdue_trig = {"triggered_trig_id":trigger['triggered_trig_id'], "user_name":trigger['user_name'], "time":datetime.utcnow(),
                                     "thread_id":new_overdue_issue['thread_id'], "recepient_email":new_overdue_issue["recepient_email"]}
         
                 await send_overdue_trigger_event(new_overdue_trig)
@@ -278,7 +286,7 @@ async def check_overdue_issues():
                 
                 # send email notification and dashboard notifications
                 
-                notific_channel = collection_notificationSendingChannels.find({"user_name":trigger["user_name"]})
+                notific_channel = collection_notificationSendingChannels.find_one({"user_name":trigger["user_name"]})
                     
                 if notific_channel:
                     # Access the noti_sending_emails array

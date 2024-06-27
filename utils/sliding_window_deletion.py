@@ -4,7 +4,7 @@ import time
 
 from fastapi import HTTPException
 
-from api.email_filtering_and_info_generation.configurations.database import collection_email_msgs, collection_inquiries,collection_issues, collection_conversations
+from api.email_filtering_and_info_generation.configurations.database import collection_email_msgs, collection_inquiries,collection_issues, collection_conversations, collection_overdue_trigger_events, collection_triger_events
 
 
 
@@ -55,6 +55,17 @@ async def delete_issues_and_inquiries(boundaryinWeeks: int):
         
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+        
+async def delete_trigger_events():
+    
+        try:
+            # Calculate the threshold date which is one month ago
+            boundary = datetime.utcnow() - timedelta(weeks=1)
+            collection_triger_events.delete_many({"time": {"$lt": boundary}})
+            collection_overdue_trigger_events.delete_many({"time": {"$lt": boundary}})
+        
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
 
 
@@ -69,6 +80,7 @@ async def slide_the_time_window():
             if now.hour == 0 and now.minute == 0:
                 await delete_email_msgs(4)
                 await delete_issues_and_inquiries(4)
+                await delete_trigger_events()
                 time.sleep(60)  # Sleep for 1 minute to avoid multiple checks within the same minute
 
             # Calculate time to sleep until the next check (either 00:00 or 12:00)

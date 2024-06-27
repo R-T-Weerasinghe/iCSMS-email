@@ -44,7 +44,8 @@ async def summarize_conversations(new_email_msg_array):
             
             full_convo_text = new_email_msg["body"] + " " + prev_summary
             
-            new_updated_times = convo_summary_doc['updated_times'].append(new_email_msg["time"])
+            convo_summary_doc['updated_times'] = convo_summary_doc['updated_times'].append(new_email_msg["time"])
+            new_updated_times = convo_summary_doc['updated_times'] 
             
         else:
             
