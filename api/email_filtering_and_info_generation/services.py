@@ -74,7 +74,7 @@ async def send_convo_summary(convo_summary: Convo_summary):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def update_summary(thread_id: str, new_summary: str, new_updated_times:datetime):
+async def update_summary(thread_id: str, new_summary: str, new_updated_times:List[datetime]):
     result =  collection_conversations.update_one(
         {"thread_id": thread_id},
         {"$set": {"summary": new_summary, "updated_times": new_updated_times}}

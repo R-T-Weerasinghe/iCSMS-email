@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 import os
 import time
 
-from simplegmail import Gmail
 from api.email_filtering_and_info_generation.configurations.database import collection_readingEmailAccounts, collection_inquiries,collection_issues, collection_notificationSendingChannels, collection_configurations
 from api.email_filtering_and_info_generation.email_sending import send_email
 from api.email_filtering_and_info_generation.services import get_overall_sentiment_value, get_overdue_inquiries, get_overdue_issues, get_triggers_array, send_overdue_trigger_event, send_trig_event

@@ -40,40 +40,40 @@ async def identify_criticality_notifcations(new_email_msg_array):
                     
                 # SEND email notification and dashboard notifications
                 
-                notific_channel = collection_notificationSendingChannels.find_one({"user_name":trigger["user_name"]})
-                    
-                if notific_channel:
-                    # Access the noti_sending_emails array
-                    noti_sending_emails = notific_channel.get("noti_sending_emails", [])
-                    
-                    is_private_email_notifications = notific_channel.get("is_email_notifications")
-                    
-                    if is_private_email_notifications:
-                    
-                        if noti_sending_emails != []:
-                    
-                        # setting up subject and messages
-                            
-                            subject = f"""Criticality Email recorded from {new_email_msg["recipient"]}"""
-                            message = f"""The following critical email was recorded from the account  {new_email_msg["recipient"]} on {new_email_msg["time"]}. \n\n
-                            Criticality Category: {new_email_msg['criticality_category']} \n
-                            sender: {new_email_msg["sender"]}\n
-                            subject of email: {new_email_msg["subject"]}\n\n
-                            {new_email_msg['body']}"""
-    
-                            
-                            for noti_sending_email in noti_sending_emails:
-                                    
-                                await send_email(1, noti_sending_email, subject, message)                          
+                    notific_channel = collection_notificationSendingChannels.find_one({"user_name":trigger["user_name"]})
+                        
+                    if notific_channel:
+                        # Access the noti_sending_emails array
+                        noti_sending_emails = notific_channel.get("noti_sending_emails", [])
+                        
+                        is_private_email_notifications = notific_channel.get("is_email_notifications")
+                        
+                        if is_private_email_notifications:
+                        
+                            if noti_sending_emails != []:
+                        
+                            # setting up subject and messages
+                                
+                                subject = f"""Criticality Email recorded from {new_email_msg["recipient"]}"""
+                                message = f"""The following critical email was recorded from the account  {new_email_msg["recipient"]} on {new_email_msg["time"]}. \n\n
+                                Criticality Category: {new_email_msg['criticality_category']} \n
+                                sender: {new_email_msg["sender"]}\n
+                                subject of email: {new_email_msg["subject"]}\n\n
+                                {new_email_msg['body']}"""
         
-                    
-                    is_dashboard_notifications = notific_channel.get("is_dashboard_notifications")
-                    
-                    if is_dashboard_notifications:
+                                
+                                for noti_sending_email in noti_sending_emails:
+                                        
+                                    await send_email(1, noti_sending_email, subject, message)                          
+            
                         
-                        # perform the POST call to the main dashboard
+                        is_dashboard_notifications = notific_channel.get("is_dashboard_notifications")
                         
-                            print("sending notification to main dashboard")
+                        if is_dashboard_notifications:
+                            
+                            # perform the POST call to the main dashboard
+                            
+                                print("sending notification to main dashboard")
                         
         
         # checking the sentiment shifts
