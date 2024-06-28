@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from api.v2.models.issuesModel import Issue, IssuesResponse, IssueDetailed
+from api.v2.models.issuesModel import IssuesResponse, IssueDetailed
 from api.v2.models.filtersModel import FilterParams
 from api.v2.services.issuesService import getIssueByThreadId, getIssues
 

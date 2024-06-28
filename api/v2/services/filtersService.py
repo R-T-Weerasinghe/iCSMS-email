@@ -12,7 +12,7 @@ def getCompanyAddresses(type: str):
     elif type == "inquiry":
         return_list = collection_inquiries.distinct("recepient_email", {"recepient_email": {"$ne": None}})
     elif type == "suggestion":
-        return_list = collection_suggestions.distinct("recepient_email", {"recepient_email": {"$ne": None}})
+        return_list = collection_suggestions.distinct("recepient", {"recepient": {"$ne": None}})
     else:
         raise HTTPException(status_code=400, detail="Invalid type parameter provided.")
     return {"company_addresses": return_list}
@@ -43,7 +43,7 @@ def getStatuses(type: str):
     elif type == "inquiry":
         return_list = ["new", "waiting", "update", "closed"]
     elif type == "suggestion":
-        return_list = ["new", "waiting", "update", "closed"]
+        return_list = ["new"]
     else:
         # fail-safe: pydantic catches this before this function is called
         raise HTTPException(status_code=400, detail="Invalid type parameter provided.")
