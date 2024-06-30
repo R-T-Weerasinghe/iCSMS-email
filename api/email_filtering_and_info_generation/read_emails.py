@@ -7,8 +7,6 @@ import re
 from email.utils import parsedate_to_datetime
 from pytz import timezone, utc
 
-from simplegmail import Gmail # type: ignore
-from simplegmail.query import construct_query # type: ignore
 from datetime import datetime, timedelta, timezone
 from api.email_filtering_and_info_generation.conversations_summarizing import summarize_conversations
 from api.email_filtering_and_info_generation.emailIntegration import integrateEmail

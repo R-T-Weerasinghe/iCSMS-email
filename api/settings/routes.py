@@ -29,15 +29,14 @@ async def receive_email_data(email_data: PostNewIntegratingEmail):
     email_address = email_data.emailAddress
     nick_name = email_data.nickName
     client_secret=email_data.clientSecret
-    result = services.check_client_secret_validation
+    result = services.check_client_secret_validation(client_secret, email_id)
     
-    if  result == True:
+    if  result == "success":
         await services.integrateEmail(email_address,nick_name, client_secret)
         return EmailINtegrationPostResponseMessage(message = "intergration complete")
-    elif result == False:
-         return EmailINtegrationPostResponseMessage(message = "Client secret error")
     else:
-        raise HTTPException(status_code=500, detail="An internal error occurred in services.check_client_secret_validation")
+         return EmailINtegrationPostResponseMessage(message = result)
+
     
 
   
@@ -50,10 +49,17 @@ async def receive_email_edit_data(email_data: PostEditingEmail):
     email_address = email_data.editedEmailAddress
     nick_name = email_data.nickName
     client_secret=email_data.clientSecret
+    print("old email address", old_email_address)
+    doc = collection_readingEmailAccounts.find_one({"address": old_email_address}, {"id": 1})
+    result = services.check_client_secret_validation(client_secret, doc['id'])
     
-    await services.updateEmail(old_email_address,email_address,nick_name, client_secret)
+    if  result == "success":
+        await services.updateEmail(old_email_address,email_address,nick_name, client_secret)
+        return EmailINtegrationPostResponseMessage(message = "edit complete")
+    else:
+         return EmailINtegrationPostResponseMessage(message = result)
+   
 
-    return {"message": "Email data received successfully"}
 
 
 # sentiment shift triggers form listener
@@ -73,7 +79,7 @@ async def receive_trigger_data(trigger_data:SSShiftData, user=Depends(get_curren
         
         # if SS trigger is set for the first time then create a new noti_sending_channels document for that user
         if not await services.check_user_name_notisending(username):
-            
+           
            new_noti_sending_email_rec = NotiSendingChannelsRecord(user_name=username,is_dashboard_notifications=True, is_email_notifications = False, noti_sending_emails=[])
       
            await services.send_notificationchannels_record(new_noti_sending_email_rec)
@@ -347,6 +353,7 @@ async def get_noti_channels_data(user=Depends(get_current_user)):
             is_email_notifications= False,
             noti_sending_emails= []
             )
+            
         return formatted_result
     except Exception as e:
         # Log the exception (optional)

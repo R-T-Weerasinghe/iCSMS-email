@@ -32,7 +32,7 @@ class NotiSendingChannelsRecord(BaseModel):
         user_name:str
         is_dashboard_notifications: bool
         is_email_notifications: bool
-        noti_sending_emails:List[EmailAcc]
+        noti_sending_emails:Union[List[EmailAcc]]
         
 
     

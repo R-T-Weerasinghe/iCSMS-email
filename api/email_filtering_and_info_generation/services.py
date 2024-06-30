@@ -173,7 +173,7 @@ async def get_reading_emails_array():
 async def send_reading_email_account(readingEmailAcc: Reading_email_acc):
     try:
         # Insert the tig_event dictionary into the MongoDB collection
-        result = collection_readingEmailAccounts.insert_one(readingEmailAcc)
+        result = collection_readingEmailAccounts.insert_one(readingEmailAcc.dict())
         
         # Return the ID of the inserted document
         return {"message": "new reading email account sent successfully", "inserted_id": str(result.inserted_id)}

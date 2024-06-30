@@ -660,7 +660,7 @@ async def get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(interva
     return result    
     
     
-async def get_data_for_overall_efficiency_and_effectiveness_percentages(intervalIndays: int):  
+async def new(intervalIndays: int):  
     
     n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
 
