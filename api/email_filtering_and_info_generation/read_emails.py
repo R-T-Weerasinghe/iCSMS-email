@@ -79,8 +79,9 @@ async def getEmails(id: int, new_email_msg_array, email_acc_address:str, last_em
     creds = None
     
     SCOPES = [
-    'https://www.googleapis.com/auth/gmail.modify',
-    'https://www.googleapis.com/auth/gmail.settings.basic'
+    'https://www.googleapis.com/auth/gmail.readonly'
+    # 'https://www.googleapis.com/auth/gmail.modify',
+    # 'https://www.googleapis.com/auth/gmail.settings.basic'
     ]
     
     

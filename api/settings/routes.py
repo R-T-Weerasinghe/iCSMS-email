@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from api.email_authorization.services import login_async
-from api.settings.models import DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, EmailINtegrationPostResponseMessage, GetNewIntergratingEmailID, IntergratingEmailData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, SSShiftData, SendSystemConfigData, UserRoleResponse
+from api.settings.models import DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, EmailINtegrationPostResponseMessage, GetNewIntergratingEmailID, IntergratingEmailData, IssueInqTypeData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, SSShiftData, SendSystemConfigData, UserRoleResponse
 from typing import Dict, Any, List
 from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
 from api.email_filtering_and_info_generation.services import get_reading_emails_array
@@ -164,7 +164,7 @@ async def receive_system_configurations_data(system_config_data: SendSystemConfi
             
             # if the config doc already exists
             if result:
-                # combined_products_list = newProducts + result["products"]
+         
                 update_result = collection_configurations.update_one(
                 {"id": 1},
                 {"$set": {"overdue_margin_time": overdue_margin_time}}
@@ -187,8 +187,46 @@ async def receive_system_configurations_data(system_config_data: SendSystemConfi
         
         # Raise an HTTP exception with a 400 status code and the error message
         raise HTTPException(status_code=400, detail=str(e))
+
+
+
+# issueninqyiryTypesConfigurations form listener     
+@router.post("/settings/receive_issue_inq_type_data")
+async def receive_issue_inq_type_data(iss_inq_type_data: IssueInqTypeData):  
+    try:
+        print("recieved issue inq type data", iss_inq_type_data)
+        updated_issue_types_to_check = iss_inq_type_data.issue_types_to_check
+        updated_inquiry_types_to_check = iss_inq_type_data.inquiry_types_to_check           
         
-       
+        result = collection_configurations.find({"id":3})  
+        
+        # if the config doc already exists
+        if result:
+        
+            collection_configurations.update_one(
+            {"id": 3},
+            {"$set": {"issue_types": updated_issue_types_to_check, "inquiry_types":updated_inquiry_types_to_check}}
+                )
+            
+        # making a new config doc
+        else:
+            try:
+                    result = collection_configurations.insert_one({
+                        "id": 3,
+                        "issue_types": updated_issue_types_to_check,
+                        "inquiry_types": updated_issue_types_to_check
+                    })
+                    return {"message": "new issue and inquiry type doc inserted successfully", "inserted_id": str(result.inserted_id)}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+        
+    except Exception as e:
+        # Log the exception (optional)
+        print(f"An error occurred: {e}")
+        
+        # Raise an HTTP exception with a 400 status code and the error message
+        raise HTTPException(status_code=400, detail=str(e))    
+    
         
 # listeing to removal of noti sending emails        
 @router.post("/settings/remove_noti_sending_email")
@@ -380,7 +418,28 @@ async def get_system_configuration_data():
         
         # Raise an HTTP exception with a 500 status code and a generic error message
         raise HTTPException(status_code=500, detail="An unexpected error occurred while retrieving email accounts.")
+
+# send issue type and inquiry type data of company
+@router.get("/settings/get_issue_inq_type_data", response_model=IssueInqTypeData)
+async def get_issue_inq_type_data():
+    try:
+        result = collection_configurations.find_one({"id": 3})
         
+        if result:
+            formatted_result = IssueInqTypeData(issue_types_to_check = result['issue_types'], 
+                                                inquiry_types_to_check = result['inquiry_types'])
+        else:
+            formatted_result = IssueInqTypeData(issue_types_to_check=[], inquiry_types_to_check=[])
+        print("sent issue n inquriy type data", formatted_result)
+        return formatted_result
+    except Exception as e:
+        # Log the exception (optional)
+        print(f"An error occurred: {e}")
+        
+        # Raise an HTTP exception with a 500 status code and a generic error message
+        raise HTTPException(status_code=500, detail="An unexpected error occurred while retrieving email accounts.")
+    
+           
 @router.get("/settings/get_new_intergrating_email_id", response_model=GetNewIntergratingEmailID)
 async def get_new_intergrating_email_id():
     try:

@@ -138,12 +138,7 @@ async def send_email(id: int, recepient: str, subject: str, email_body: str, ):
     
     print("outside of waiting loop")
     creds = None
-    # SCOPES = [
-    # 'https://www.googleapis.com/auth/gmail.send',
-    # 'https://www.googleapis.com/auth/gmail.modify',
-    # 'https://www.googleapis.com/auth/gmail.readonly',
-    # 'https://www.googleapis.com/auth/gmail.settings.basic'
-    # ]
+
     
     SCOPES = [
     'https://www.googleapis.com/auth/gmail.modify',

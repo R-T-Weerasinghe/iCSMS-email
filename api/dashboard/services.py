@@ -8,16 +8,20 @@ import random
 from api.email_filtering_and_info_generation.schemas import list_readingEmailAcc_serial
 
 
-async def get_current_overall_sentiments( intervalIndays: int):
+async def get_current_overall_sentiments(intervalInDaysStart: int, intervalInDaysEnd:int):
  
     
    
     recipients = await get_all_reading_email_accounts()
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
     
     # Query MongoDB for documents matching recipients
-    query = {"time": {"$gte": n_days_ago}}
+    query = {"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}}
     results = collection_email_msgs.find(query, {"_id": 0, "our_sentiment_score": 1})
     
     # Extract our_sentiment_score values
@@ -62,18 +66,22 @@ async def get_current_overall_sentiments( intervalIndays: int):
             
     
     
-async def get_data_for_topic_cloud(intervalIndays: int):
+async def get_data_for_topic_cloud(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
     # change this so to get the topics list from the DB
     products = await getProductsList()
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
 
     # Initialize a dictionary to store topic frequencies
     products_frequencies = {product: 0 for product in products}
 
     # Query MongoDB to retrieve documents
-    cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago}})
+    cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}})
 
     # Iterate over each document
     for document in cursor:
@@ -93,49 +101,56 @@ async def get_data_for_topic_cloud(intervalIndays: int):
 
 
 
-async def get_data_for_word_cloud(intervalIndays: int):
+async def get_data_for_word_cloud(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
     # change this so to get the topics list from the DB
-    topics = await getProductsList()
+    products = await getProductsList()
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
 
     # Initialize a dictionary to store topic frequencies
-    topic_frequencies = {topic: 0 for topic in topics}
+    product_frequencies = {topic: 0 for topic in products}
+    
+    for product in products:
+        # Query MongoDB to retrieve documents
+        prod_count = collection_email_msgs.count_documents({
+                "time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
+                "products": {"$in": [product]}
+            })
+        
 
-    # Query MongoDB to retrieve documents
-    cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago}})
-
-    # Iterate over each document
-    for document in cursor:
-        # Extract the topics array from the document
-        document_topics = document.get("topics", [])
-
-        # Count the frequency of each topic
-        for topic in document_topics:
-            if topic in topics:
-                topic_frequencies[topic] += 1
+        print("n_days_ago_start", n_days_ago_start)
+        print("product", product, "prod_count", prod_count, '\n')
+        product_frequencies[product] = prod_count
     
 
     
     # Convert the dictionary to a list of dictionaries with topic and frequency
-    result = [WordCloudSingleResponse(topic= topic, frequency= frequency, color= generateRandomColor()) for topic, frequency in topic_frequencies.items()]
-    
+    result = [WordCloudSingleResponse(topic= topic, frequency= frequency, color= generateRandomColor()) for topic, frequency in product_frequencies.items()]
+    print("wordcloud response!!!!!!!!!!!!!!!!!!!!!!!!!!", result)
     return result
     
 
 
-async def get_data_for_stat_cards(intervalIndays: int):
+async def get_data_for_stat_cards(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
     recepient_emails = await get_reading_emails_array()
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
     
     evenCounter = 0
     result: List[StatCardSingleResponse] = []
     for recepient_email in recepient_emails:
         query = {"recipient": recepient_email["address"]}
-        cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago}}, query)
+        cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}}, query)
         
         if cursor:
             
@@ -177,11 +192,15 @@ async def get_data_for_stat_cards(intervalIndays: int):
     return result
 
 
-async def get_data_for_sentiments_by_topic(intervalIndays: int):
+async def get_data_for_sentiments_by_topic(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
     products = await getProductsList()
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
     
     # Initialize dictionary to store sentiment sums for each topic
     overall_sentiment_scores = []
@@ -192,7 +211,7 @@ async def get_data_for_sentiments_by_topic(intervalIndays: int):
     for product in products:
  
         # Query MongoDB for emails with the current topic
-        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago}, "products": {"$in": [product]}})
+        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}})
 
         # find the total no of emails per each topic
         totalNoOFEmails = 0
@@ -227,7 +246,7 @@ async def get_data_for_sentiments_by_topic(intervalIndays: int):
     return result
 
 
-async def get_data_for_sentiments_by_time(intervalIndays: int):
+async def get_data_for_sentiments_by_time(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
     labels = []
     positive_values = []
@@ -242,7 +261,7 @@ async def get_data_for_sentiments_by_time(intervalIndays: int):
     formatted_current_time = current_time.strftime("%d %b")
  
     
-    delayday = intervalIndays
+    delayday = intervalInDaysStart
     
     while(delayday>=0):
         
@@ -319,11 +338,15 @@ async def get_data_for_sentiments_by_time(intervalIndays: int):
     
     return result
 
-async def get_data_for_sentiments_distribution_of_topics(intervalIndays: int):
+async def get_data_for_sentiments_distribution_of_topics(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
     products = await getProductsList()
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
     
     labels_freq=[]
     positive_values_freq=[]
@@ -345,7 +368,7 @@ async def get_data_for_sentiments_distribution_of_topics(intervalIndays: int):
         labels_freq.append(product)
         
         # Query MongoDB for emails with the current topic
-        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago}, "products": {"$in": [product]}}, {"_id": 0, "our_sentiment_score": 1})
+        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}}, {"_id": 0, "our_sentiment_score": 1})
 
         
         if emails_with_product!= []:
@@ -408,13 +431,17 @@ async def get_data_for_sentiments_distribution_of_topics(intervalIndays: int):
     return result
 
 
-async def get_data_value_for_gauge_chart(intervalIndays: int):
+async def get_data_value_for_gauge_chart(intervalInDaysStart: int, intervalInDaysEnd:int) :
     # Calculate the date n days ago
-    print(intervalIndays)
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    print(intervalInDaysStart)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
 
     # Query MongoDB collection for emails within the past n days for the given userId
-    emails = collection_email_msgs.find({"time": {"$gte": n_days_ago}})
+    emails = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}})
     
     
         
@@ -441,10 +468,14 @@ async def get_data_value_for_gauge_chart(intervalIndays: int):
     return result
 
 
-async def get_data_for_issue_and_inquiry_frequency_by_products(intervalIndays: int):
+async def get_data_for_issue_and_inquiry_frequency_by_products(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
     products = await getProductsList()
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
     
     product_labels=[]
     issue_freq=[]
@@ -462,13 +493,13 @@ async def get_data_for_issue_and_inquiry_frequency_by_products(intervalIndays: i
         
         # Query MongoDB for emails with the current topic
         count_issues = collection_issues.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "products": {"$in": [product]}
         })
         
                 # Query MongoDB for emails with the current topic
         count_inquiries = collection_inquiries.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "products": {"$in": [product]}
         })
 
@@ -481,7 +512,7 @@ async def get_data_for_issue_and_inquiry_frequency_by_products(intervalIndays: i
         
         
         #-------------------finding the best and worst product by sentiment----------------------------
-        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago}, "products": {"$in": [product]}})
+        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}})
 
         # find the total no of emails per each topic
         totalNoOFEmails = 0
@@ -508,10 +539,10 @@ async def get_data_for_issue_and_inquiry_frequency_by_products(intervalIndays: i
 
     # Initialize an empty list to store the summation results
     summation_result = []
-
+    total_no_of_issues = sum(issue_freq)
     # Loop through the arrays and sum the corresponding elements
     for freq, sentiment in zip(issue_freq, overall_sentiment_scores_of_topics):
-        summation_result.append(sentiment*freq-freq) 
+        summation_result.append((sentiment + 1) * (1 - (freq / total_no_of_issues))) 
         
     min_value = min(summation_result)
     max_value = max(summation_result)
@@ -519,27 +550,46 @@ async def get_data_for_issue_and_inquiry_frequency_by_products(intervalIndays: i
     min_index = summation_result.index(min_value)
     max_index = summation_result.index(max_value)
     
+    rounded_performence_scores = [round(num,2) for num in summation_result]
+    
     result = IssueInquiryFreqByProdcutsResponse(
               product_labels = product_labels, 
               issue_freq = issue_freq, 
               inquiry_freq = inquiry_freq, 
+              performence_scores = rounded_performence_scores,
               best_product = product_labels[max_index], 
               worst_product = product_labels[min_index])
     
+    print("Issues and Inquiry by products", result)
+    
     return result
 
-async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalIndays: int):
+async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
-    issue_types = [
-        'Order Issues', 'Billing and Payment Problems', 'Account Issues', 
-        'Product or Service Complaints', 'Technical Issues', 
-        'Warranty and Repair Issues', 'Subscription Problems', 
-        'Return and Exchange Problems'
-    ]
-        
+    # issue_types = [
+        # 'Order Issues', 'Billing and Payment Problems', 'Account Issues', 
+        # 'Product or Service Complaints', 'Technical Issues', 
+        # 'Warranty and Repair Issues', 'Subscription Problems', 
+        # 'Return and Exchange Problems', 'Public Relations Issues'
+    # ]
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_end = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
-    print("intervalIndays", intervalIndays)
+    issue_types = await getIssueTypes()
+    
+    count_other_issues = collection_issues.count_documents({
+        "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
+        "issue_type": "other"
+    })
+    
+    if count_other_issues==0:
+        issue_types.pop()
+    
+
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
+    print("intervalInDaysStart", intervalInDaysStart)
  
     issue_type_frequencies = []
     inquiry_type_frequencies = []
@@ -549,25 +599,35 @@ async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalIndays:
         
         
         count_issues = collection_issues.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "issue_type": issue_type
         })
   
         
         issue_type_frequencies.append(count_issues)
     
-    inquiry_types = [
-        'Product Information', 'Pricing and Discounts', 'Shipping and Delivery', 
-        'Warranty and Guarantees', 'Account Information', 
-        'Technical Support', 'Policies and Procedures', 
-        'Payment Methods'
-    ]
+    # inquiry_types = [
+        # 'Product Information', 'Pricing and Discounts', 'Shipping and Delivery', 
+        # 'Warranty and Guarantees', 'Account Information', 
+        # 'Technical Support', 'Policies and Procedures', 
+        # 'Payment Methods', 'Employment Opportunities', 'Legal or Compliance'
+    # ]
+    
+    inquiry_types = await getInquiryTypes()
+    
+    count_other_type_inquirires = collection_issues.count_documents({
+    "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
+    "issue_type": "other"
+    })
+    
+    if count_other_type_inquirires==0:
+        inquiry_types.pop()
     
     
     for inquiry_type in inquiry_types:
         
         count_inquiries = collection_inquiries.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "inquiry_type": inquiry_type
         })
         
@@ -583,9 +643,13 @@ async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalIndays:
     return result
 
 
-async def get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalIndays: int):     
+async def get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalInDaysStart: int, intervalInDaysEnd:int) :     
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
 
     
     effectiveness_categories = ['Highly Effective', 'Moderately Effective', 'Minimally Effective', 'Ineffective']
@@ -598,7 +662,7 @@ async def get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalI
     for effectiveness_category in effectiveness_categories:
         
         count_issues = collection_issues.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "effectiveness": effectiveness_category
             })
         
@@ -607,7 +671,7 @@ async def get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalI
     for efficiency_category in efficiency_categories:
         
          count_issues = collection_issues.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "efficiency": efficiency_category
             })       
          
@@ -621,9 +685,13 @@ async def get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalI
     
     return result
     
-async def get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(intervalIndays: int):     
+async def get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(intervalInDaysStart: int, intervalInDaysEnd:int) :     
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
 
     
     effectiveness_categories = ['Highly Effective', 'Moderately Effective', 'Minimally Effective', 'Ineffective']
@@ -636,7 +704,7 @@ async def get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(interva
     for effectiveness_category in effectiveness_categories:
         
         count_inquiries = collection_inquiries.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "effectiveness": effectiveness_category
             })
         
@@ -645,7 +713,7 @@ async def get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(interva
     for efficiency_category in efficiency_categories:
         
          count_inquiries = collection_inquiries.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "efficiency": efficiency_category
             })       
          
@@ -660,9 +728,13 @@ async def get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(interva
     return result    
     
     
-async def new(intervalIndays: int):  
+async def get_data_for_overall_efficiency_and_effectiveness_percentages(intervalInDaysStart: int, intervalInDaysEnd:int) :  
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
 
     
     effectiveness_categories = ['Highly Effective', 'Moderately Effective', 'Minimally Effective', 'Ineffective']
@@ -673,12 +745,12 @@ async def new(intervalIndays: int):
     efficiency_percentages = []
     
     count_total_closed_issues = collection_issues.count_documents({
-    "start_time": {"$gte": n_days_ago},
+    "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
     "status": "closed"
     })
     
     count_total_closed_inquiries = collection_inquiries.count_documents({
-    "start_time": {"$gte": n_days_ago},
+    "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
     "status": "closed"
     })
     
@@ -691,12 +763,12 @@ async def new(intervalIndays: int):
         for efficiency_category in efficiency_categories:
             
             count_issues_per_efficiency_category = collection_issues.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "efficiency": efficiency_category
             }) 
             
             count_inquiries_per_efficiency_category = collection_inquiries.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "efficiency": efficiency_category
             })   
             
@@ -711,12 +783,12 @@ async def new(intervalIndays: int):
         for effectiveness_category in effectiveness_categories:
             
             count_issues_per_effectiveness_category = collection_issues.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "effectiveness": effectiveness_category
             }) 
             
             count_inquiries_per_effectiveness_category = collection_inquiries.count_documents({
-            "start_time": {"$gte": n_days_ago},
+            "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "effectiveness": effectiveness_category
             })   
             
@@ -738,28 +810,32 @@ async def new(intervalIndays: int):
     
     return result  
     
-async def get_data_for_ongoing_and_closed_stats(intervalIndays: int):
+async def get_data_for_ongoing_and_closed_stats(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
     
     count_total_closed_issues = collection_issues.count_documents({
-    "start_time": {"$gte": n_days_ago},
+    "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
     "status": "closed"
     })
     
     count_total_ongoing_issues = collection_issues.count_documents({
-    "start_time": {"$gte": n_days_ago},
+    "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
     "status": "ongoing"
     })
     
     
     count_total_closed_inquiries = collection_inquiries.count_documents({
-    "start_time": {"$gte": n_days_ago},
+    "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
     "status": "closed"
     })
     
     count_total_ongoing_inquiries = collection_inquiries.count_documents({
-    "start_time": {"$gte": n_days_ago},
+    "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
     "status": "ongoing"
     })
     
@@ -808,9 +884,13 @@ async def get_data_for_ongoing_and_closed_stats(intervalIndays: int):
     
     return result   
     
-async def get_data_for_best_performing_email_acc(intervalIndays: int):
+async def get_data_for_best_performing_email_acc(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
     
     documents = collection_readingEmailAccounts.find({}, {"_id": 0, "address": 1})
     
@@ -823,23 +903,23 @@ async def get_data_for_best_performing_email_acc(intervalIndays: int):
         #------------------------------------finding the first part score - out of 40 ----------------------------------------------------------------------------------------------
         
         count_total_inquiries = collection_inquiries.count_documents({
-        "start_time": {"$gte": n_days_ago},
+        "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc
         })
         
         count_total_issues = collection_issues.count_documents({
-        "start_time": {"$gte": n_days_ago},
+        "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc
         })
         
         count_total_closed_inquiries = collection_inquiries.count_documents({
-        "start_time": {"$gte": n_days_ago},
+        "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc,
         "status":"closed"
         })
         
         count_total_closed_issues = collection_issues.count_documents({
-        "start_time": {"$gte": n_days_ago},
+        "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc,
         "status":"closed"
         })
@@ -852,15 +932,15 @@ async def get_data_for_best_performing_email_acc(intervalIndays: int):
 
         max_denominator_score = total_closed *2
         
-        count_total_closed_highly_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Highly Efficient")
-        count_total_closed_moderately_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Moderately Efficient")
-        count_total_closed_less_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Less Efficient")
-        count_total_closed_ineff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Inefficient")
+        count_total_closed_highly_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Highly Efficient")
+        count_total_closed_moderately_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Moderately Efficient")
+        count_total_closed_less_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Less Efficient")
+        count_total_closed_ineff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Inefficient")
  
-        count_total_closed_highly_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Highly Efficient")
-        count_total_closed_moderately_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Moderately Efficient")
-        count_total_closed_less_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Less Efficient")
-        count_total_closed_ineff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Inefficient")       
+        count_total_closed_highly_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Highly Efficient")
+        count_total_closed_moderately_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Moderately Efficient")
+        count_total_closed_less_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Less Efficient")
+        count_total_closed_ineff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Inefficient")       
         
         count_total_closed_highly_eff = count_total_closed_highly_eff_issues + count_total_closed_highly_eff_inquiries
         count_total_closed_moderately_eff = count_total_closed_moderately_eff_issues + count_total_closed_moderately_eff_inquiries
@@ -881,9 +961,13 @@ async def get_data_for_best_performing_email_acc(intervalIndays: int):
     
     return result   
     
-async def get_data_for_efficiency_by_email_acc(intervalIndays: int):  
+async def get_data_for_efficiency_by_email_acc(intervalInDaysStart: int, intervalInDaysEnd:int) :  
      
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
     
     documents = collection_readingEmailAccounts.find({}, {"_id": 0, "address": 1})
     
@@ -896,15 +980,15 @@ async def get_data_for_efficiency_by_email_acc(intervalIndays: int):
     
     for reading_email_acc in all_reading_email_accs:
         
-        no_of_highly_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Highly Efficient")
-        no_of_mod_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Moderately Efficient")
-        no_of_less_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Less Efficient")
-        no_of_ineff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Inefficient")
+        no_of_highly_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end, reading_email_acc, "Highly Efficient")
+        no_of_mod_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Moderately Efficient")
+        no_of_less_eff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Less Efficient")
+        no_of_ineff_issues = get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Inefficient")
 
-        no_of_highly_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Highly Efficient")
-        no_of_mod_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Moderately Efficient")
-        no_of_less_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Less Efficient")
-        no_of_ineff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, "Inefficient")
+        no_of_highly_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Highly Efficient")
+        no_of_mod_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Moderately Efficient")
+        no_of_less_eff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Less Efficient")
+        no_of_ineff_inquiries = get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end,  reading_email_acc, "Inefficient")
         
         total_closed_issues = no_of_highly_eff_issues+no_of_mod_eff_issues+no_of_less_eff_issues+no_of_ineff_issues
         total_closed_inquiries = no_of_highly_eff_inquiries+no_of_mod_eff_inquiries+no_of_less_eff_inquiries+no_of_ineff_inquiries
@@ -938,9 +1022,13 @@ async def get_data_for_efficiency_by_email_acc(intervalIndays: int):
     
     return result   
 
-async def get_data_for_overdue_issues(intervalIndays: int):           
+async def get_data_for_overdue_issues(intervalInDaysStart: int, intervalInDaysEnd:int) :           
 
-    n_days_ago = datetime.utcnow() - timedelta(days=intervalIndays)
+    n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
+    n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
+    n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
     
     documents = collection_readingEmailAccounts.find({}, {"_id": 0, "address": 1})
     
@@ -955,7 +1043,7 @@ async def get_data_for_overdue_issues(intervalIndays: int):
         #------------------------------------finding the first part score - out of 40 ----------------------------------------------------------------------------------------------
         
         count_overdue_issues_per_email_acc = collection_issues.count_documents({
-        "start_time": {"$gte": n_days_ago},
+        "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc,
         "status":"ongoing",
         "isOverdue": True
@@ -966,7 +1054,7 @@ async def get_data_for_overdue_issues(intervalIndays: int):
         sum_overdue_issues = sum_overdue_issues + count_overdue_issues_per_email_acc
     
         total_ongoing_issues = collection_issues.count_documents({
-        "start_time": {"$gte": n_days_ago},
+        "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "status": "ongoing"
         }) 
         
@@ -1004,11 +1092,33 @@ async def getProductsList():
     print("No document found with id 1")
     return []
 
+async def getIssueTypes():
+ result = collection_configurations.find_one({"id": 3})
+ if result:
+    issueTypeList = result.get("issue_types",[])
+    issueTypeList.append('other')
+    return issueTypeList
 
-def get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, efficiency_category ):
+ else:
+    print("No document found with id 3")
+    return []
+
+async def getInquiryTypes():
+ result = collection_configurations.find_one({"id": 3})
+ if result:
+    inquiryTypeList = result.get("inquiry_types",[])
+    inquiryTypeList.append('other')
+    return inquiryTypeList
+
+ else:
+    print("No document found with id 3")
+    return []
+    
+
+def get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end, reading_email_acc, efficiency_category ):
     
     count_total_closed_certain_eff_issues = collection_issues.count_documents({
-        "start_time": {"$gte": n_days_ago},
+        "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc,
         "status":"closed",
         "efficiency":efficiency_category
@@ -1016,10 +1126,10 @@ def get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_day
     
     return count_total_closed_certain_eff_issues
 
-def get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago, reading_email_acc, efficiency_category ):
+def get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end, reading_email_acc, efficiency_category ):
     
     count_total_closed_certain_eff_inquiry = collection_inquiries.count_documents({
-        "start_time": {"$gte": n_days_ago},
+        "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc,
         "status":"closed",
         "efficiency":efficiency_category

@@ -1,6 +1,7 @@
 import time
 from langchain_google_genai import ChatGoogleGenerativeAI
 import google.generativeai as genai
+from api.dashboard.services import getInquiryTypes, getIssueTypes
 from api.email_filtering_and_info_generation.models import InquiryInDB, IssueInDB
 from dotenv import load_dotenv
 import os
@@ -103,15 +104,10 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                     
                     sentiment_score = round(scale_score(analyze_sentiment(inquiry_summary)), 2)
                     
+                    inquiry_types = await getInquiryTypes()
+                    formatted_string_issue_types = "\n".join([f"{i+1}. {issue}" for i, issue in enumerate(inquiry_types)])
                     inquiry_type_identification_script = f""" tell me to which of the following inquiry types does the above inquiry falls into
-                                                        1.Product Information
-                                                        2.Pricing and Discounts
-                                                        3.Shipping and Delivery
-                                                        4.Warranty and Guarantees
-                                                        5.Account Information
-                                                        6.Technical Support
-                                                        7.Policies and Procedures
-                                                        8.Payment Methods
+                                                        {formatted_string_issue_types}
                                                         Only output the inquiry type. Do not output anything else."""
                     
                     responseInqt = gemini_chat.send_message(inquiry_type_identification_script)                           
@@ -167,15 +163,10 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                     
                     sentiment_score = round(scale_score(analyze_sentiment(issue_summary)), 2)
                     
+                    issue_types = await getIssueTypes()
+                    formatted_string_inq_types = "\n".join([f"{i+1}. {issue}" for i, issue in enumerate(issue_types)])
                     issue_type_identification_script = f""" tell me to which of the following issue types does the above issue falls into
-                                                        1.Order Issues
-                                                        2.Billing and Payment Problems
-                                                        3.Account Issues
-                                                        4.Product or Service Complaints
-                                                        5.Technical Issues
-                                                        6.Warranty and Repair Issues
-                                                        7.Subscription Problems
-                                                        8.Return and Exchange Problems
+                                                        {formatted_string_inq_types}
                                                         Only output the issue type (Exact issue type as given above). Do not output anything else."""
                     
                     responseIst = gemini_chat.send_message(issue_type_identification_script)                           

@@ -21,11 +21,13 @@ def check_client_secret_validation_init_oauth_flow(client_secrets_file: str, red
         flow = Flow.from_client_secrets_file(
             client_secrets_file,
             scopes=[
-                'https://www.googleapis.com/auth/gmail.modify',
-                'https://www.googleapis.com/auth/gmail.settings.basic'
+                'https://www.googleapis.com/auth/gmail.readonly'
+                # 'https://www.googleapis.com/auth/gmail.modify',
+                # 'https://www.googleapis.com/auth/gmail.settings.basic'
             ],
             redirect_uri=redirect_uri
         )
+
         return "success"
     except DefaultCredentialsError as e:
         print(f"Invalid client secret file: {e}")
@@ -45,7 +47,7 @@ def check_client_secret_validation_init_oauth_flow(client_secrets_file: str, red
 
 def check_client_secret_validation(new_email_client_secret_content: str, id: int):
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-    
+
     # if the following folder already doesn;t exist the following code will create it.
     new_folder_path= f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmailTemp"
     os.makedirs(new_folder_path, exist_ok=True)
@@ -64,6 +66,7 @@ def check_client_secret_validation(new_email_client_secret_content: str, id: int
     os.remove(client_secrets_file)
     
     return output
+
 
 
 async def send_new_trigger(trigger: Trigger):

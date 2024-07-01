@@ -93,3 +93,8 @@ class PostingCriticalityData(BaseModel):
   
 class PostingOverdueIssuesData(BaseModel):
   accs_to_check_overdue_emails: List[str]
+  
+  
+class IssueInqTypeData(BaseModel):
+  issue_types_to_check: List[str]
+  inquiry_types_to_check: List[str]
