@@ -1,6 +1,7 @@
 import time
 from langchain_google_genai import ChatGoogleGenerativeAI
 import google.generativeai as genai
+from api.dashboard.services import getInquiryTypes, getIssueTypes
 from api.email_filtering_and_info_generation.models import InquiryInDB, IssueInDB
 from dotenv import load_dotenv
 import os
@@ -33,22 +34,31 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
     
     reading_email_accounts = await get_all_reading_accounts()
     
-    #---finding cuurent issue thread ids
-    issue_thread_ids = collection_issues.find({}, {'thread_id': 1, '_id': 0})
-    issue_thread_id_list = [doc['thread_id'] for doc in issue_thread_ids] 
-    
-    #---finding current inquiry thread ids
-    inquiry_thread_ids = collection_inquiries.find({}, {'thread_id': 1, '_id': 0})
-    inquiry_thread_id_list = [doc['thread_id'] for doc in inquiry_thread_ids] 
-    
-    thread_id_list = inquiry_thread_id_list + issue_thread_id_list
-    
+
+    i = 0
   
       
     for new_email_msg in new_email_msg_array:
         
+        if(i%3==0):
+            genai.configure(api_key=os.getenv('GOOGLE_API_KEY_5'))
+            # Loading Gemini Pro
+            model = genai.GenerativeModel('gemini-pro')
+        elif(i%3==1): 
+            genai.configure(api_key=os.getenv('GOOGLE_API_KEY_6'))
+            # Loading Gemini Pro
+            model = genai.GenerativeModel('gemini-pro')
+        else:
+            genai.configure(api_key=os.getenv('GOOGLE_API_KEY_4'))
+            # Loading Gemini Pro
+            model = genai.GenerativeModel('gemini-pro')
+            
+        i = i+1 
         
-        if new_email_msg['thread_id'] not in thread_id_list:
+        issue_document = collection_issues.find_one({'thread_id': new_email_msg["thread_id"]})
+        inquiry_document = collection_inquiries.find_one({'thread_id': new_email_msg["thread_id"]})
+        
+        if not issue_document and not inquiry_document:
             
             # checking whether the first email of the thread came from a client
             if new_email_msg['sender'] not in reading_email_accounts:
@@ -64,13 +74,13 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 response = model.generate_content(issue_inquiry_identification_script)
                 response.resolve()  
                 
-                time.sleep(5)
+                time.sleep(3)
                 
                 print("issue_inquiry_identification  : " + response.text) 
                 
                 # if the email of the new thread is an inquiry
                 if "inquiry"== response.text:
-                    time.sleep(10)
+                   
                     new_email_msg['isInquiry'] = True
                     gemini_chat = model.start_chat()
                     inquiry_summarizing_script = f""" '{new_email_msg["body"]}' 
@@ -81,6 +91,8 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                     responseInq = gemini_chat.send_message(inquiry_summarizing_script)                           
                     
                     inquiry_summary = responseInq.text
+                    
+                    time.sleep(3)
                     inquiry_convo_summary_dict =  {
                                                 "sender":new_email_msg['sender'], 
                                                 "sender_type":"client",
@@ -92,22 +104,17 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                     
                     sentiment_score = round(scale_score(analyze_sentiment(inquiry_summary)), 2)
                     
+                    inquiry_types = await getInquiryTypes()
+                    formatted_string_issue_types = "\n".join([f"{i+1}. {issue}" for i, issue in enumerate(inquiry_types)])
                     inquiry_type_identification_script = f""" tell me to which of the following inquiry types does the above inquiry falls into
-                                                        1.Product Information
-                                                        2.Pricing and Discounts
-                                                        3.Shipping and Delivery
-                                                        4.Warranty and Guarantees
-                                                        5.Account Information
-                                                        6.Technical Support
-                                                        7.Policies and Procedures
-                                                        8.Payment Methods
+                                                        {formatted_string_issue_types}
                                                         Only output the inquiry type. Do not output anything else."""
                     
                     responseInqt = gemini_chat.send_message(inquiry_type_identification_script)                           
                     inquiry_type = responseInqt.text
                     
                     print("inquiry type  : " + inquiry_type) 
-                    time.sleep(15)
+                    
                     
                     new_inquiry = InquiryInDB(
                                 thread_id = new_email_msg['thread_id'], 
@@ -130,8 +137,8 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 
                 # if the email of the new thread is an issue
                 if "issue" == response.text:
-                    time.sleep(10)
                     
+                    new_email_msg["isIssue"] = True
                     
                     new_email_msg['isIssue'] = True
                     
@@ -144,6 +151,8 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                                                 
                     responseIs = gemini_chat.send_message(issue_summarizing_script)                           
                     issue_summary = responseIs.text
+                    time.sleep(3)
+                    
                     issue_convo_summary_dict = {
                                                 "sender":new_email_msg['sender'], 
                                                 "sender_type":"client",
@@ -154,15 +163,10 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                     
                     sentiment_score = round(scale_score(analyze_sentiment(issue_summary)), 2)
                     
+                    issue_types = await getIssueTypes()
+                    formatted_string_inq_types = "\n".join([f"{i+1}. {issue}" for i, issue in enumerate(issue_types)])
                     issue_type_identification_script = f""" tell me to which of the following issue types does the above issue falls into
-                                                        1.Order Issues
-                                                        2.Billing and Payment Problems
-                                                        3.Account Issues
-                                                        4.Product or Service Complaints
-                                                        5.Technical Issues
-                                                        6.Warranty and Repair Issues
-                                                        7.Subscription Problems
-                                                        8.Return and Exchange Problems
+                                                        {formatted_string_inq_types}
                                                         Only output the issue type (Exact issue type as given above). Do not output anything else."""
                     
                     responseIst = gemini_chat.send_message(issue_type_identification_script)                           
@@ -197,10 +201,10 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
             
             # ---------------------- issues--------------------------------------------------------------------------------
 
-            if new_email_msg['thread_id'] in issue_thread_id_list:
+            if issue_document:
                 
+                new_email_msg["isIssue"] = True
                 
-                time.sleep(15)
                 
                 # identifying sender type
                 if new_email_msg['sender'] not in reading_email_accounts:
@@ -208,13 +212,14 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 else:
                     sender_type = "company"
                     
-                current_issue_doc = collection_issues.find_one({'thread_id': new_email_msg["thread_id"]})
+                current_issue_doc = issue_document
                 
                 summarize_script = f"""{new_email_msg['body']} summarize the above email body to a minimum word count as possible. output only the summary. don't output anything else. """
                 
                 summarize_response = model.generate_content(summarize_script)
                 summarize_response.resolve()  
                 issue_summary = summarize_response.text
+                time.sleep(3)
                 
                 print("ongoing issue new part summary" + issue_summary)
                 
@@ -225,7 +230,8 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                                             "time":new_email_msg['time'],
                                             "message":issue_summary}
                 
-                new_issue_convo_summary_arr = current_issue_convo_summary_arr.append(new_issue_convo_summary_dict)
+                current_issue_convo_summary_arr.append(new_issue_convo_summary_dict)
+                new_issue_convo_summary_arr = current_issue_convo_summary_arr
                 
                 issue_convo_summary_text_form = ""
                 
@@ -256,6 +262,7 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 
                 response1 = gemini_chat.send_message(issue_resolution_checking_script)
                 
+                time.sleep(3)
                 
                 if "yes" == response1.text:
                                         
@@ -270,7 +277,7 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                     
                     response2 = gemini_chat.send_message(effectivenes_of_issue_checking_script)
                     new_effectiveness = response2.text
-                    
+                    time.sleep(3)
                     efficiency_of_issue_checking_script = f""" Again consider the previously given issue convo summary and the decide efficiency of the customer care employee based 
                                                                 on the following categories. (consider the given datetimes of each message to accurately classify the efficiency category. Carefuly figure out which msgs are sent by customer and which are sent by customer care employee.)
                                                                 1.Highly Efficient: The issue was resolved quickly and effectively, demonstrating a high level of effectiveness and timeliness.
@@ -291,21 +298,22 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
 
                 gemini_chat = None
             # ---------------------- iquiry--------------------------------------------------------------------------------
-            if new_email_msg['thread_id'] in inquiry_thread_id_list: 
+            if inquiry_document: 
+                new_email_msg['isInquiry'] = True
                 
-                time.sleep(25)
                 if new_email_msg['sender'] not in reading_email_accounts:
                     sender_type = "client"
                 else:
                     sender_type = "company"
                 
-                convo_summary_doc = collection_inquiries.find_one({'thread_id': new_email_msg["thread_id"]})
+                convo_summary_doc = inquiry_document
                 
                 summarize_script = f"""{new_email_msg['body']} summarize the above email body to a minimum word count as possible. output only the summary. don't output anything else. """
                 
                 summarize_response = model.generate_content(summarize_script)
                 summarize_response.resolve()
                 inquiry_summary = summarize_response.text
+                time.sleep(3)
                 
                 print("ongoing inquiry new part summary" + inquiry_summary)
                 
@@ -316,7 +324,8 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                                             "time":new_email_msg['time'],
                                             "message":inquiry_summary}
                 
-                new_inquiry_convo_summary_arr = current_inquiry_convo_summary_arr.append(new_inquiry_convo_summary_dict)
+                current_inquiry_convo_summary_arr.append(new_inquiry_convo_summary_dict)
+                new_inquiry_convo_summary_arr = current_inquiry_convo_summary_arr
                 
                 inquiry_convo_summary_text_form = ""
                 
@@ -343,7 +352,7 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                                                         Output 'yes'. Otherwise, output 'no'. Do not output anything other than 'yes' or 'no'."""
                 
                 response1 = gemini_chat.send_message(inquiry_resolution_checking_script)
-                
+                time.sleep(3)
                 
                 if "yes" == response1.text:
                     
@@ -358,7 +367,7 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                     
                     response2 = gemini_chat.send_message(effectiveness_of_inquiry_checking_script)
                     new_effectiveness = response2.text
-                    
+                    time.sleep(3)
                     efficiency_of_inquiry_checking_script = f""" Again consider the previously given inquiry convo summary and the decide efficiency of the customer care employee based 
                                                                 on the following categories. (consider the given datetimes of each message to accurately classify the efficiency category. Carefuly figure out which msgs are sent by customer and which are sent by customer care employee.)
                                                                 1. Highly Efficient: The inquiry was resolved promptly and effectively, demonstrating a high level of efficiency and timeliness. Responses were sent and received in a timely manner, resulting in a quick resolution of the customer's inquiry.

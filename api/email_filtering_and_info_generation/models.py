@@ -81,14 +81,20 @@ class Reading_email_acc(BaseModel):
     
 class Trigger_event(BaseModel):
     triggered_trig_id:int
-    user_id:int
+    user_name:str
+    email_msg_or_thread_id:Optional[str] = None
+    recepient_email: Optional[str] = None
+    sender_email: Optional[str] = None
+    time:datetime
     is_lower_bound_triggered:str
     is_upper_bound_triggered:str
     triggered_bound_value:str
+    criticality_condition:str
     
 class Overdue_trig_event(BaseModel):
     triggered_trig_id:int
-    user_id:int
+    user_name:str
+    time: datetime
     thread_id:str
     recepient_email:str
     

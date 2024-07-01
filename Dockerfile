@@ -14,6 +14,8 @@ RUN pip install simplegmail
 
 RUN pip install python-jose
 
+RUN pip install pytz
+
 RUN pip cache purge
 
 COPY . .
