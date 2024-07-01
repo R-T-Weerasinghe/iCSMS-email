@@ -1,3 +1,4 @@
+import json
 import os
 from fastapi import HTTPException
 from api.email_filtering_and_info_generation.models import Reading_email_acc
@@ -6,7 +7,8 @@ from api.email_filtering_and_info_generation.services import send_reading_email_
 from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
 from api.email_filtering_and_info_generation.services import get_reading_emails_array
 from google.auth.exceptions import DefaultCredentialsError
-
+from google.auth.exceptions import OAuthError
+from google_auth_oauthlib.flow import Flow 
 # ----------------------DB API calls--------------------------------------------------------------------------------------------------------
 
 # post a new trigger into Triggers 
@@ -16,38 +18,47 @@ state_store = {}
 
 def check_client_secret_validation_init_oauth_flow(client_secrets_file: str, redirect_uri: str):
     try:
-        flow = flow.from_client_secrets_file(
+        flow = Flow.from_client_secrets_file(
             client_secrets_file,
             scopes=[
-                'https://www.googleapis.com/auth/gmail.modify',
-                'https://www.googleapis.com/auth/gmail.settings.basic'
+                'https://www.googleapis.com/auth/gmail.readonly'
+                # 'https://www.googleapis.com/auth/gmail.modify',
+                # 'https://www.googleapis.com/auth/gmail.settings.basic'
             ],
             redirect_uri=redirect_uri
         )
-        return True
+
+        return "success"
     except DefaultCredentialsError as e:
         print(f"Invalid client secret file: {e}")
-        return False
+        return "The client secret you entered is not valid. Please enter the correct client secret to complete the integration process ."
+    except json.JSONDecodeError as e:
+        print(f"JSON decoding failed: {e}")
+        return "The client secret you entered is not valid. Please enter the correct client secret to complete the integration process "
+    except OAuthError as e:
+        # Catch broader OAuth errors, including those related to the redirect URI
+        print(f"OAuth error: {e}")
+        return "there is an error with your redirect URI. set up the above given URI correctly in your google cloud console and retry."
     except Exception as e:
         print(f"An error occurred: {e}")
-        return None
+        return "The client secret you have entered or the redirect URI that you have set up in the google cloud console is incorrect. Please fix the errors and retry."
 
 
 
 def check_client_secret_validation(new_email_client_secret_content: str, id: int):
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-    
+
     # if the following folder already doesn;t exist the following code will create it.
     new_folder_path= f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmailTemp"
     os.makedirs(new_folder_path, exist_ok=True)
 
     client_secrets_file = f"{new_folder_path}/client_secret.json"
-
+    
     with open(client_secrets_file, "w") as file:
         file.write(new_email_client_secret_content)
     
     # MIGHT OCCU A BUG HERE BECAUSE THE REDIRECT ID FOR EACH EMAIL MIGHT BE DIFFERENT. Comment out the hardcoded id.
-    id = 1
+    
     redirect_uri = f'http://127.0.0.1:8000/email/info_and_retrieval/callback?id={id}'
     
     output = check_client_secret_validation_init_oauth_flow(client_secrets_file, redirect_uri)
@@ -55,6 +66,7 @@ def check_client_secret_validation(new_email_client_secret_content: str, id: int
     os.remove(client_secrets_file)
     
     return output
+
 
 
 async def send_new_trigger(trigger: Trigger):
@@ -73,7 +85,6 @@ async def send_new_trigger(trigger: Trigger):
 async def update_triggers_ss(user_name: int, accs_to_check_ss: list[str], lowerSS_notify: bool, ss_lower_bound: float, upperSS_notify: bool, ss_upper_bound: float, is_checking_ss:bool):
     try:
         
-            
         result = collection_trigers.update_one(
             {"user_name": user_name},
             {"$set": {
@@ -88,11 +99,6 @@ async def update_triggers_ss(user_name: int, accs_to_check_ss: list[str], lowerS
         )
     
             
-              
-        if result.modified_count == 1:
-            return {"message": "Trigger updated successfully"}
-        else:
-            raise HTTPException(status_code=404, detail="Trigger not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -106,10 +112,7 @@ async def update_triggers_overdue_issues(user_name, accs_to_check_overdue_issues
                     "accs_to_check_overdue_issues": accs_to_check_overdue_issues
                  }}
             )
-        if result.modified_count == 1:
-            return {"message": "Overdue Issue Trigger updated successfully"}
-        else:
-            raise HTTPException(status_code=404, detail="Trigger not found")
+
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -123,10 +126,7 @@ async def update_triggers_criticality(user_name, accs_to_check_critical_emails: 
                     "accs_to_check_critical_emails": accs_to_check_critical_emails
                  }}
             )
-        if result.modified_count == 1:
-            return {"message": "Crticality Trigger updated successfully"}
-        else:
-            raise HTTPException(status_code=404, detail="Trigger not found")
+ 
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -138,11 +138,11 @@ async def send_notificationchannels_record(new_noti_sending_email_rec: NotiSendi
             print("in here", new_noti_sending_email_rec.noti_sending_emails)
             result = collection_notificationSendingChannels.insert_one(new_noti_sending_email_rec.dict())
             print("after result")
-            if result.modified_count == 1:
-                    return {"message": "Notification sending channels updated successfully"}
-            else:
-                    print("insert failed")
-                    raise HTTPException(status_code=404, detail="Trigger not found") 
+            # if result.modified_count == 1:
+            #         return {"message": "Notification sending channels updated successfully"}
+            # else:
+            #         print("insert failed")
+            #         raise HTTPException(status_code=404, detail="Trigger not found") 
           
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 
@@ -250,7 +250,14 @@ async def get_data_of_ss_threshold(user_name: str):
 
         return data
     else:
-        raise HTTPException(status_code=404, detail="User not found")
+        data: SSShiftData = SSShiftData(accs_to_check_ss = [], 
+                           ss_lower_bound = 0, 
+                           ss_upper_bound = 0,
+                           is_checking_ss = False, 
+                           is_lower_checking = False, 
+                           is_upper_checking = False)
+
+        return data
     
     
 # to get the criticality checking emails of a specific user from the Collection
@@ -261,7 +268,7 @@ async def get_accs_to_check_criticality(user_name: str):
         accs_to_check_overdue_emails = result.get("accs_to_check_critical_emails", [])
         return accs_to_check_overdue_emails
     else:
-        raise HTTPException(status_code=404, detail="User not found")
+        return []
 
 # to get the overdue issues checking emails of a specific user from the Collection
 async def get_accs_to_check_overdue_issues(user_name: str):
@@ -271,7 +278,7 @@ async def get_accs_to_check_overdue_issues(user_name: str):
         accs_to_check_overdue_emails = result.get("accs_to_check_overdue_issues", [])
         return accs_to_check_overdue_emails
     else:
-        raise HTTPException(status_code=404, detail="User not found")
+        return []
     
 async def get_new_intergrating_email_id(): 
         
@@ -309,7 +316,7 @@ async def integrateEmail(new_email_address, new_email_nickname, new_email_client
     new_email_acc = Reading_email_acc(id=new_id, address=new_email_address, nickname=new_email_nickname)
 
     # send the new email account to the readingEmailAccounts collection
-    respnse = await send_reading_email_account(new_email_acc.dict())
+    respnse = await send_reading_email_account(new_email_acc)
     
     print(respnse)
 
@@ -390,7 +397,7 @@ async def updateTriggersTableSS(username,emailAccsToCheckSS,lowerNotify, lowerSS
     
   
     if await check_user_name(username):
-        
+        print("checkuser name becomes true")
         await update_triggers_ss(username,emailAccsToCheckSS,lowerNotify,lowerSS,upperNotify,upperSS, is_checking_ss)
     else:    
         
@@ -399,7 +406,7 @@ async def updateTriggersTableSS(username,emailAccsToCheckSS,lowerNotify, lowerSS
         
         new_trigger = Trigger(trigger_id = newtrigID, user_name=username, is_checking_ss=is_checking_ss, accs_to_check_ss= emailAccsToCheckSS, accs_to_check_overdue_issues = [], accs_to_check_critical_emails = [] , ss_lower_bound= lowerSS, ss_upper_bound=upperSS,  is_lower_checking = lowerNotify,  is_upper_checking = upperNotify)
         
-        await send_new_trigger(new_trigger.dict())
+        await send_new_trigger(new_trigger)
 
 
 
@@ -413,7 +420,7 @@ async def updateTriggersTableOverdueIssues(username, emailAccsToCheckOverdueIssu
          
          new_trigger = Trigger(trigger_id = newtrigID, user_name=username, accs_to_check_ss= [], accs_to_check_overdue_issues= emailAccsToCheckOverdueIssues, accs_to_check_critical_emails=[], ss_lower_bound= None, ss_upper_bound=None)
          
-         await send_new_trigger(new_trigger.dict())
+         await send_new_trigger(new_trigger)
          
         
 
@@ -427,7 +434,7 @@ async def updateTriggersTableCriticality(username, emailAccsToCheckCriticality):
          
          new_trigger = Trigger(trigger_id = newtrigID, user_name=username, accs_to_check_ss= [], accs_to_check_overdue_issues=[], accs_to_check_critical_emails = emailAccsToCheckCriticality, ss_lower_bound= None, ss_upper_bound=None)
          
-         await send_new_trigger(new_trigger.dict())
+         await send_new_trigger(new_trigger)
          
           
     

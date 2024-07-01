@@ -1,6 +1,7 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from api.email_filtering_and_info_generation.config import API_KEY  
 import google.generativeai as genai
+from api.email_filtering_and_info_generation.services import get_reading_emails_array, getProductsList
 from dotenv import load_dotenv
 import os
 
@@ -9,14 +10,17 @@ import os
 # Load environment variables from .env file
 load_dotenv()
 google_api_key = os.getenv("GOOGLE_API_KEY")
+google_api_key_2 = os.getenv("GOOGLE_API_KEY_2")
+
+google_api_key_4 = os.getenv("GOOGLE_API_KEY_4")
+google_api_key_5 = os.getenv("GOOGLE_API_KEY_5")
+google_api_key_6 = os.getenv("GOOGLE_API_KEY_6")
+
 
 # # Check if the value is not None before setting the environment variable
 # if google_api_key is not None:
 #     os.environ['GOOGLE_API_KEY'] = google_api_key
     
-# Initialize Gemini LLM
-llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key)
-
 # genai.configure(api_key=API_KEY)
 # model = genai.GenerativeModel('gemini-pro')
 # response = model.generate_content("What is the meaning of life?")
@@ -58,23 +62,41 @@ async def identify_criticality(new_email_msg_array):
     # I trust that you will take swift action to address my concerns and restore my faith in your brand.
     # Thank you for your attention to this urgent matter.
     # """
-
+    i=0
     for new_email_msg in new_email_msg_array:
-    
-        criticality_script = f"""use this criticality categorization {ciricality_categorization}
-        and tell me the criticality of this email body {new_email_msg["body"]}
-        no need of explanations only provide me the criticality category. don't output any other word"""
-
-
-
-        # Send the email body to Gemini for criticality identification
-        response = llm.invoke(criticality_script)
-
-        # Print the analysis (replace with sentiment score when available)
-        print(f"criticality categories of the emails found: {response.content}")
         
-        # update the criticality_category
-        new_email_msg["criticality_category"]=response.content
+        email_acc_array = await get_reading_emails_array()
+        email_acc_array = [email_acc['address'] for email_acc in email_acc_array]
+        
+        if new_email_msg['recipient'] in email_acc_array:
+        
+            if(i%3==0):
+                os.environ["GOOGLE_API_KEY"] = google_api_key_4
+                llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key)
+            elif(i%3==1): 
+                
+                os.environ["GOOGLE_API_KEY"] = google_api_key_5
+                llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key)
+            else:
+                os.environ["GOOGLE_API_KEY"] = google_api_key_6
+                llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key) 
+                    
+            i = i+1
+        
+            criticality_script = f"""use this criticality categorization {ciricality_categorization}
+            and tell me the criticality of this email body {new_email_msg["body"]}
+            no need of explanations only provide me the criticality category. don't output any other word"""
+
+        
+
+            # Send the email body to Gemini for criticality identification
+            response = llm.invoke(criticality_script)
+
+            # Print the analysis (replace with sentiment score when available)
+            print(f"criticality categories of the emails found: {response.content}")
+            
+            # update the criticality_category
+            new_email_msg["criticality_category"]=response.content
 
 
 

@@ -9,10 +9,14 @@ import json
 
 
 load_dotenv()
+google_api_key = os.getenv("GOOGLE_API_KEY")
+google_api_key_2 = os.getenv("GOOGLE_API_KEY_2")
 
+google_api_key_4 = os.getenv("GOOGLE_API_KEY_4")
+google_api_key_5 = os.getenv("GOOGLE_API_KEY_5")
+google_api_key_6 = os.getenv("GOOGLE_API_KEY_6")
     
-# Initialize Gemini LLM
-llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7)
+
 
 
 
@@ -22,12 +26,25 @@ llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7)
 
 
 async def identify_topics(new_email_msg_array):
-    
+    i=0
     products = await getProductsList()
     print("product list retainded     :", products)
     if products!=[]:
     
         for new_email_msg in new_email_msg_array:
+            
+            if(i%3==0):
+                os.environ["GOOGLE_API_KEY"] = google_api_key_4
+                llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key)
+            elif(i%3==1): 
+                
+                os.environ["GOOGLE_API_KEY"] = google_api_key_5
+                llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key)
+            else:
+                os.environ["GOOGLE_API_KEY"] = google_api_key_6
+                llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key) 
+                     
+            i = i+1
             
             new_products_arr=[]
             

@@ -51,6 +51,7 @@ class IssueInquiryFreqByProdcutsResponse(BaseModel):
     product_labels: List[str]
     issue_freq: List[int]
     inquiry_freq: List[int]
+    performence_scores: List[float]
     best_product: str
     worst_product: str
 
