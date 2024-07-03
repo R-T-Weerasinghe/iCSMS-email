@@ -14,37 +14,48 @@ from api.email_filtering_and_info_generation.configurations.database import coll
 # Load environment variables from .env file
 load_dotenv()
 google_api_key = os.getenv("GOOGLE_API_KEY")
+google_api_key_2 = os.getenv("GOOGLE_API_KEY_2")
+
+google_api_key_4 = os.getenv("GOOGLE_API_KEY_4")
+google_api_key_5 = os.getenv("GOOGLE_API_KEY_5")
+google_api_key_6 = os.getenv("GOOGLE_API_KEY_6")
 
 
-# Initialize Gemini LLM
-llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key)
 
 
 async def summarize_conversations(new_email_msg_array):
     
-    # Query to get all thread_ids
-    thread_ids = collection_conversations.find({}, {'thread_id': 1, '_id': 0})
-    
-    # Convert the query result to a list of thread_ids
-    thread_id_list = [doc['thread_id'] for doc in thread_ids]
-    
-    
-    new_convo_summaries_array = []
+    i=0 
     
     for new_email_msg in new_email_msg_array:
         
-        email_ids=[]
+        if(i%3==0):
+            os.environ["GOOGLE_API_KEY"] = google_api_key_4
+            llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key)
+        elif(i%3==1): 
+            
+            os.environ["GOOGLE_API_KEY"] = google_api_key_5
+            llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key)
+        else:
+            os.environ["GOOGLE_API_KEY"] = google_api_key_6
+            llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.7,api_key=google_api_key) 
+                
+        i = i+1
+        # Query to get all thread_ids
+        document = collection_conversations.find_one({'thread_id': new_email_msg["thread_id"]})
+        
         
         full_convo_text = ""
         
-        if new_email_msg["thread_id"] in thread_id_list:
+        if document:
             
-            convo_summary_doc = collection_conversations.find_one({'thread_id': new_email_msg["thread_id"]})
+            convo_summary_doc = document
             prev_summary = convo_summary_doc['summary']
             
             full_convo_text = new_email_msg["body"] + " " + prev_summary
             
-            new_updated_times = convo_summary_doc['updated_times'].append(new_email_msg["time"])
+            convo_summary_doc['updated_times'].append(new_email_msg["time"])
+            new_updated_times = convo_summary_doc['updated_times'] 
             
         else:
             
@@ -54,7 +65,8 @@ async def summarize_conversations(new_email_msg_array):
         
         
         conversation_summarizing_script = f"""Write a summary of this text '{full_convo_text}'. The summary should summarize what the above email conversation is about and 
-        it shoudl be able to give the reader an undersating about the email conversation in a very short time. Also, only output the summary. Don't output anything else."""
+        it shoudl be able to give the reader an undersating about the email conversation in a very short time. Also, only output the summary. 
+        Don't output anything else.These emails are either ones that came to a customer care email account of a company, or the emails sent by that company to their customers, so provide the summary as you are summarzing these to a company manager. """
         
         # Send the full convo text to Gemini for summarizing
         response = llm.invoke(conversation_summarizing_script)  
@@ -66,7 +78,7 @@ async def summarize_conversations(new_email_msg_array):
         
         # at last adding the new_email_id to the array
         
-        if new_email_msg["thread_id"] in thread_id_list:
+        if document:
              await update_summary(new_email_msg["thread_id"], response.content, new_updated_times)
         
         else:

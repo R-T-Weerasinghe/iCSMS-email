@@ -66,7 +66,7 @@ async def send_suggestion(suggestion: Suggestion):
 async def send_convo_summary(convo_summary: Convo_summary):
     try:
         # Insert the conversation summary dictionary into the MongoDB collection
-        result = collection_conversations.insert_one(convo_summary)
+        result = collection_conversations.insert_one(convo_summary.dict())
         
         # Return the ID of the inserted document
         return {"message": "Conversation summary sent successfully", "inserted_id": str(result.inserted_id)}
@@ -74,7 +74,7 @@ async def send_convo_summary(convo_summary: Convo_summary):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def update_summary(thread_id: str, new_summary: str, new_updated_times:datetime):
+async def update_summary(thread_id: str, new_summary: str, new_updated_times:List[datetime]):
     result =  collection_conversations.update_one(
         {"thread_id": thread_id},
         {"$set": {"summary": new_summary, "updated_times": new_updated_times}}
@@ -173,7 +173,7 @@ async def get_reading_emails_array():
 async def send_reading_email_account(readingEmailAcc: Reading_email_acc):
     try:
         # Insert the tig_event dictionary into the MongoDB collection
-        result = collection_readingEmailAccounts.insert_one(readingEmailAcc)
+        result = collection_readingEmailAccounts.insert_one(readingEmailAcc.dict())
         
         # Return the ID of the inserted document
         return {"message": "new reading email account sent successfully", "inserted_id": str(result.inserted_id)}

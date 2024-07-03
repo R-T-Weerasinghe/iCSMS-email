@@ -120,7 +120,7 @@ async def login_async(id: int, email_acc_address:str):
 
 
 
-def send_email(id: int, recepient: str, subject: str, email_body: str, ):
+async def send_email(id: int, recepient: str, subject: str, email_body: str, ):
     
     token_path = f'api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{id}/gmail_token.json'
     
@@ -129,7 +129,7 @@ def send_email(id: int, recepient: str, subject: str, email_body: str, ):
     
     if not is_token_valid(token_path):
         
-        login_async(id)
+        await login_async(id, "raninduharischandra12@gmail.com")
         
     
     while(not os.path.exists(token_path)):
@@ -138,12 +138,7 @@ def send_email(id: int, recepient: str, subject: str, email_body: str, ):
     
     print("outside of waiting loop")
     creds = None
-    # SCOPES = [
-    # 'https://www.googleapis.com/auth/gmail.send',
-    # 'https://www.googleapis.com/auth/gmail.modify',
-    # 'https://www.googleapis.com/auth/gmail.readonly',
-    # 'https://www.googleapis.com/auth/gmail.settings.basic'
-    # ]
+
     
     SCOPES = [
     'https://www.googleapis.com/auth/gmail.modify',
@@ -152,7 +147,7 @@ def send_email(id: int, recepient: str, subject: str, email_body: str, ):
     
     
     
-    creds = Credentials.from_authorized_user_file(f'credentialsForEmails/credentialsForEmail{id}/gmail_token.json', SCOPES)
+    creds = Credentials.from_authorized_user_file(f'api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{id}/gmail_token.json', SCOPES)
 
 
     # Connect to the Gmail API 

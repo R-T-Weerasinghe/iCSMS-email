@@ -31,9 +31,9 @@ def individual_trigger_serial(trigr) -> dict:
     return{
         "_id": str(trigr["_id"]),#_id is format which MongoDB uses to find a key to return the value
         "trigger_id":trigr["trigger_id"],
-        "user_id":trigr["user_id"],
+        "user_name":trigr["user_name"],
         "accs_to_check_ss":trigr["accs_to_check_ss"],
-        "accs_to_check_criticality":trigr["accs_to_check_criticality"],
+        "accs_to_check_criticality":trigr["accs_to_check_critical_emails"],
         "ss_lower_bound":trigr["ss_lower_bound"],
         "ss_upper_bound":trigr["ss_upper_bound"]
         

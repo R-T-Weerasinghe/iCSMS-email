@@ -12,9 +12,9 @@ router = APIRouter()
 
 # send current reading emails to frontend   
 @router.get("/dashboard/get_current_overall_sentiments", response_model=GetCurrentOverallSentimentProgress)
-async def get_current_overall_sentiments(intervalInDaysStart: int, intervalInDaysEnd:int):
+async def get_current_overall_sentiments(intervalIndays: int):
    
-    result = await services.get_current_overall_sentiments(intervalInDaysStart, intervalInDaysEnd)
+    result = await services.get_current_overall_sentiments(intervalIndays)
     print("CURRENT OVERALL SENTIMENTS",result)
     return result
 
@@ -22,126 +22,125 @@ async def get_current_overall_sentiments(intervalInDaysStart: int, intervalInDay
 
 
 # @router.get("/dashboard/get_data_for_topic_cloud")
-# async def get_data_for_topic_cloud(intervalInDaysStart: int):
+# async def get_data_for_topic_cloud(intervalIndays: int):
     
-#     result = await services.get_data_for_topic_cloud(intervalInDaysStart)
+#     result = await services.get_data_for_topic_cloud(intervalIndays)
 #     return result
 
 
 @router.get("/dashboard/get_data_for_word_cloud", response_model=List[WordCloudSingleResponse])
-async def get_data_for_word_cloud(intervalInDaysStart: int, intervalInDaysEnd:int):
+async def get_data_for_word_cloud(intervalIndays: int):
     
-    result = await services.get_data_for_word_cloud(intervalInDaysStart, intervalInDaysEnd)
+    result = await services.get_data_for_word_cloud(intervalIndays)
     return result
 
  
 @router.get("/dashboard/get_data_for_stat_cards", response_model= List[StatCardSingleResponse] )
-async def get_data_for_stat_cards(intervalInDaysStart: int, intervalInDaysEnd:int):
+async def get_data_for_stat_cards(intervalIndays: int):
     
-    result = await services.get_data_for_stat_cards(intervalInDaysStart, intervalInDaysEnd)    
+    result = await services.get_data_for_stat_cards(intervalIndays)    
     return result
 
 
 @router.get("/dashboard/get_data_for_sentiments_by_topic", response_model= SentimentsByTopicResponse)
-async def get_data_for_sentiments_by_topic(intervalInDaysStart: int, intervalInDaysEnd:int):
+async def get_data_for_sentiments_by_topic(intervalIndays: int):
     
-    result = await services.get_data_for_sentiments_by_topic(intervalInDaysStart, intervalInDaysEnd)
+    result = await services.get_data_for_sentiments_by_topic(intervalIndays)
     return result
 
 
 @router.get("/dashboard/get_data_for_sentiments_by_time", response_model= SentimentsByTimeResponse)
-async def get_data_for_sentiments_by_time(intervalInDaysStart: int, intervalInDaysEnd:int):
+async def get_data_for_sentiments_by_time(intervalIndays: int):
     
-    result = await services.get_data_for_sentiments_by_time(intervalInDaysStart, intervalInDaysEnd)    
+    result = await services.get_data_for_sentiments_by_time(intervalIndays)    
     return result
 
 
 
 @router.get("/dashboard/get_data_for_sentiments_distribution_of_topics", response_model= SentimentsDistributionByTimeResponse)
-async def get_data_for_sentiments_distribution_of_topics(intervalInDaysStart: int, intervalInDaysEnd:int):
+async def get_data_for_sentiments_distribution_of_topics(intervalIndays: int):
     
     
-    result = await services.get_data_for_sentiments_distribution_of_topics(intervalInDaysStart, intervalInDaysEnd)
+    result = await services.get_data_for_sentiments_distribution_of_topics(intervalIndays)
     return result
             
 
 @router.get("/dashboard/get_data_value_for_gauge_chart", response_model= GaugeChartResponse)
-async def get_data_value_for_gauge_chart(intervalInDaysStart: int, intervalInDaysEnd:int):
+async def get_data_value_for_gauge_chart(intervalIndays: int):
     
-    result = await services.get_data_value_for_gauge_chart(intervalInDaysStart, intervalInDaysEnd)
+    result = await services.get_data_value_for_gauge_chart(intervalIndays)
     return result
 
 
             
 @router.get("/dashboard/get_data_for_issue_and_inquiry_frequency_by_products", response_model = IssueInquiryFreqByProdcutsResponse)
-async def get_data_for_issue_and_inquiry_frequency_by_products(intervalInDaysStart: int, intervalInDaysEnd:int):
+async def get_data_for_issue_and_inquiry_frequency_by_products(intervalIndays: int):
     
-    result = await services.get_data_for_issue_and_inquiry_frequency_by_products(intervalInDaysStart, intervalInDaysEnd)
+    result = await services.get_data_for_issue_and_inquiry_frequency_by_products(intervalIndays)
     print(result)
     return result   
         
 @router.get("/dashboard/get_data_for_frequency_by_issue_type_and_inquiry_types", response_model =IssueInquiryFreqByTypeResponse)
-async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalInDaysStart: int, intervalInDaysEnd:int):
+async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalIndays: int):
 
 
-    result = await services.get_data_for_frequency_by_issue_type_and_inquiry_types(intervalInDaysStart, intervalInDaysEnd)
+    result = await services.get_data_for_frequency_by_issue_type_and_inquiry_types(intervalIndays)
     print(result)
     return result  
         
 
 @router.get("/dashboard/get_data_for_issue_frequency_by_efficiency_and_effectiveness", response_model = IssuesByEfficiencyEffectivenessResponse)
-async def get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalInDaysStart: int, intervalInDaysEnd:int):     
+async def get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalIndays: int):     
      
-    result = await services.get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalInDaysStart, intervalInDaysEnd)   
+    result = await services.get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalIndays)   
     print(result)
     return result   
  
 
 
 @router.get("/dashboard/get_data_for_inquiry_frequency_by_efficiency_and_effectiveness", response_model = InquiriesByEfficiencyEffectivenessResponse)
-async def get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(intervalInDaysStart: int, intervalInDaysEnd:int):     
+async def get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(intervalIndays: int):     
     
-    result = await services.get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(intervalInDaysStart, intervalInDaysEnd)    
+    result = await services.get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(intervalIndays)    
     return result    
 
 
 @router.get("/dashboard/get_data_for_overall_efficiency_and_effectiveness_percentages", response_model = OverallyEfficiencyEffectivenessPecentagesResponse)
-async def get_data_for_overall_efficiency_and_effectiveness_percentages(intervalInDaysStart: int, intervalInDaysEnd:int):  
+async def get_data_for_overall_efficiency_and_effectiveness_percentages(intervalIndays: int):  
         
-    result = await services.get_data_for_overall_efficiency_and_effectiveness_percentages(intervalInDaysStart, intervalInDaysEnd)
-    print("overall efficienct and effec data-------------------", result)
+    result = await services.get_data_for_overall_efficiency_and_effectiveness_percentages(intervalIndays)
     return result
 
 
             
 @router.get("/dashboard/get_data_for_ongoing_and_closed_stats", response_model = OngoingAndClosedStatsResponse)
-async def get_data_for_ongoing_and_closed_stats(intervalInDaysStart: int, intervalInDaysEnd:int):
+async def get_data_for_ongoing_and_closed_stats(intervalIndays: int):
     
-    result = await services.get_data_for_ongoing_and_closed_stats(intervalInDaysStart, intervalInDaysEnd)  
+    result = await services.get_data_for_ongoing_and_closed_stats(intervalIndays)  
     return result        
 
  
 
 @router.get("/dashboard/get_data_for_best_performing_email_acc", response_model = BestPerformingEmailAccResponse)
-async def get_data_for_best_performing_email_acc(intervalInDaysStart: int, intervalInDaysEnd:int):
+async def get_data_for_best_performing_email_acc(intervalIndays: int):
     
-    result = await services.get_data_for_best_performing_email_acc(intervalInDaysStart, intervalInDaysEnd)     
+    result = await services.get_data_for_best_performing_email_acc(intervalIndays)     
     return result
 
         
         
 @router.get("/dashboard/get_data_for_efficiency_by_email_acc", response_model = EmailAccEfficiencyResponse)
-async def get_data_for_efficiency_by_email_acc(intervalInDaysStart: int, intervalInDaysEnd:int):  
+async def get_data_for_efficiency_by_email_acc(intervalIndays: int):  
      
-    result = await services.get_data_for_efficiency_by_email_acc(intervalInDaysStart, intervalInDaysEnd)        
+    result = await services.get_data_for_efficiency_by_email_acc(intervalIndays)        
     return result
             
             
 
 @router.get("/dashboard/get_data_for_overdue_issues", response_model = OverdueIssuesResponse)
-async def get_data_for_overdue_issues(intervalInDaysStart: int, intervalInDaysEnd:int):           
+async def get_data_for_overdue_issues(intervalIndays: int):           
 
-    result = await services.get_data_for_overdue_issues(intervalInDaysStart, intervalInDaysEnd)           
+    result = await services.get_data_for_overdue_issues(intervalIndays)           
     return result          
         
 
