@@ -34,6 +34,13 @@ class NotiSendingChannelsRecord(BaseModel):
         is_email_notifications: bool
         noti_sending_emails:Union[List[EmailAcc]]
         
+class PutNotiSendingChannelsRecordDB(BaseModel):
+        user_name:str
+        is_dashboard_notifications: bool
+        is_email_notifications: bool
+        noti_sending_emails:Union[List[str]]
+  
+        
 
     
 class  SendSystemConfigData(BaseModel):
