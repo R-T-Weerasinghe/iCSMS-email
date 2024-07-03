@@ -150,7 +150,7 @@ async def get_data_for_stat_cards(intervalInDaysStart: int, intervalInDaysEnd:in
     result: List[StatCardSingleResponse] = []
     for recepient_email in recepient_emails:
         query = {"recipient": recepient_email["address"]}
-        cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}}, query)
+        cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "recipient": recepient_email["address"]})
         
         if cursor:
             
@@ -159,36 +159,56 @@ async def get_data_for_stat_cards(intervalInDaysStart: int, intervalInDaysEnd:in
             
             for document in cursor:
                 total_emails += 1
-
-            if total_emails == 0:
-                raise HTTPException(status_code=404, detail="Recipient not found")
-
-            for document in cursor:
                 overall_sentiment_score_sum = overall_sentiment_score_sum + document["our_sentiment_score"]
-                
-            sentiement_score = overall_sentiment_score_sum/total_emails
-            
-            sentiment = ""
-            if sentiement_score>=-0.3 and sentiement_score<=0.3:
-                sentiment = "Neutral"
-            elif sentiement_score>0.3:
-                sentiment = "Positive"
-            else:
-                sentiment = "Negative"
-            
-            imgPath = ""
-            evenCounter += 1
-            if evenCounter%2 == 1:
-                imgPath = "./email/mail_blue.png"
-            else:
-                imgPath = "./email/mail_red.png"
-                
-            result.append(StatCardSingleResponse(title= total_emails, 
+                               
+            if total_emails == 0:
+                imgPath = ""
+                evenCounter += 1
+                if evenCounter%2 == 1:
+                    imgPath = "./email/mail_blue.png"
+                else:
+                    imgPath = "./email/mail_red.png"
+                    
+                result.append(StatCardSingleResponse(title= total_emails, 
                                                     sub_title= "Total Emails", 
                                                     header= recepient_email["nickname"], 
-                                                    sentiment= sentiment, 
+                                                    sentiment= "Unavailable", 
+                                                    sentiment_score = None,
                                                     imgPath= imgPath))
-
+            else:
+                
+                for document in cursor:
+                    print("IN LOOP of geeting sentiment score for each doc")
+                   
+                    print("document[our_sentiment_score]",document["our_sentiment_score"],"\n")
+                    
+                sentiement_score = overall_sentiment_score_sum/total_emails
+                
+                print(recepient_email["nickname"], " : ", "overall sentiment sum", overall_sentiment_score_sum, "sentiement_score", sentiement_score)
+                sentiment = ""
+                if sentiement_score>=-0.3 and sentiement_score<=0.3:
+                    sentiment = "Neutral"
+                elif sentiement_score>0.3:
+                    sentiment = "Positive"
+                else:
+                    sentiment = "Negative"
+                
+                imgPath = ""
+                evenCounter += 1
+                if evenCounter%2 == 1:
+                    imgPath = "./email/mail_blue.png"
+                else:
+                    imgPath = "./email/mail_red.png"
+                    
+                result.append(StatCardSingleResponse(title= total_emails, 
+                                                        sub_title= "Total Emails", 
+                                                        header= recepient_email["nickname"], 
+                                                        sentiment= sentiment, 
+                                                        sentiment_score= round(sentiement_score, 2),
+                                                        imgPath= imgPath))
+ 
+  
+    print("EMAIL ACC STAT DATA", result)
     return result
 
 
@@ -257,13 +277,11 @@ async def get_data_for_sentiments_by_time(intervalInDaysStart: int, intervalInDa
     # get current time
     current_time = datetime.now(timezone.utc)
 
-    
-    formatted_current_time = current_time.strftime("%d %b")
  
     
     delayday = intervalInDaysStart
     
-    while(delayday>=0):
+    while(delayday>=intervalInDaysEnd):
         
         """
         delayday = 0 = today
@@ -881,6 +899,8 @@ async def get_data_for_ongoing_and_closed_stats(intervalInDaysStart: int, interv
               closed_percentage_issues = closed_percentage_issues,
               ongoing_percentage_inquiry = ongoing_percentage_inquiry, 
               closed_percentage_inquiry = closed_percentage_inquiry)
+    
+    print("ONGOING AND CLOSED ISSUES AND INQUIRIES DATA", result, "\n")
     
     return result   
     

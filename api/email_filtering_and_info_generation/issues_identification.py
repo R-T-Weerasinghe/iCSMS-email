@@ -256,7 +256,7 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
 
                                                         If the employee:
                                                         1. Provided a solution, or
-                                                        2. Escalated the complaint to the technical team or some other team, informing the customer they will be contacted soon,
+                                                        2. Escalated the complaint to the technical team or some other team, and informing the customers about this,
 
                                                         Output 'yes'. Otherwise, output 'no'. Do not output anything other than 'yes' or 'no'."""
                 
