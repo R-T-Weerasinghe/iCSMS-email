@@ -6,10 +6,12 @@ from fastapi.responses import JSONResponse
 from api.dashboard.models import BestPerformingEmailAccResponse, EmailAccEfficiencyResponse, GaugeChartResponse, InquiriesByEfficiencyEffectivenessResponse, IssueInquiryFreqByProdcutsResponse, IssueInquiryFreqByTypeResponse, IssuesByEfficiencyEffectivenessResponse, OngoingAndClosedStatsResponse, OverallyEfficiencyEffectivenessPecentagesResponse, OverdueIssuesResponse, SentimentsByTimeResponse, SentimentsByTopicResponse, SentimentsDistributionByTimeResponse, GetCurrentOverallSentimentProgress, StatCardSingleResponse, WordCloudSingleResponse
 from api.email_filtering_and_info_generation.configurations.database import collection_notificationSendingChannels,collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
 from api.dashboard import services
-
+from api.v2.services.dashboardService import getTimeData
+from api.v2.models.dashboardModel import TimeDataResponse
 router = APIRouter()
 
 
+"""
 # send current reading emails to frontend   
 @router.get("/dashboard/get_current_overall_sentiments", response_model=GetCurrentOverallSentimentProgress)
 async def get_current_overall_sentiments(intervalIndays: int):
@@ -143,7 +145,14 @@ async def get_data_for_overdue_issues(intervalIndays: int):
     result = await services.get_data_for_overdue_issues(intervalIndays)           
     return result          
         
+"""
+@router.get("/dashboard/")
+async def get_dashboard():
+    return {"message": "Welcome to email/v2/dashboard dashboard page"}
 
-
+@router.get("/dashboard/time-graph", response_model=TimeDataResponse)
+async def get_time_data(intervalInDaysStart: int, intervalInDaysEnd:int):
+    result = await getTimeData(intervalInDaysStart, intervalInDaysEnd)
+    return result
 
 
