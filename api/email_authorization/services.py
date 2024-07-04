@@ -119,4 +119,19 @@ async def update_authorization_uri(authorization_url: str, email_acc_address: st
     else: 
     
         collection_configurations.insert_one(doc)
-        
+
+
+def init_oauth_flow_sending(client_secrets_file: str, redirect_uri: str):
+    flow = Flow.from_client_secrets_file(
+        client_secrets_file,
+        scopes = [
+            'https://www.googleapis.com/auth/gmail.readonly',
+            'https://www.googleapis.com/auth/gmail.send',
+            'https://www.googleapis.com/auth/gmail.compose',
+            'https://www.googleapis.com/auth/gmail.modify'
+        ],
+
+        redirect_uri=redirect_uri
+    )
+    flow.access_type = 'offline'
+    return flow

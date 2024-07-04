@@ -97,6 +97,14 @@ class Overdue_trig_event(BaseModel):
     time: datetime
     thread_id:str
     recepient_email:str
+
+class Maindashboard_trig_event(BaseModel):
+    triggered_trig_id:int
+    user_name:str
+    time: datetime
+    email_msg_or_thread_id:Optional[str] = None
+    title:str
+    description:str
     
 
 
