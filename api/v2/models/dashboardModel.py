@@ -2,7 +2,7 @@
     
 from typing import List, Union
 from pydantic import BaseModel
-
+from datetime import datetime
 
 class GetCurrentOverallSentimentProgress(BaseModel):
     positive_percentage:float
@@ -111,7 +111,14 @@ class OverdueIssuesResponse(BaseModel):
     total_ongoing_issues: int  
     
 
-    
+class TimeDataResponse(BaseModel):
+    # emailLoad: List[int]
+    firstResponseTimes: List[float]
+    overdueCount: int
+    avgFirstResponseTime: float # in minutes
+    # labels: List[str]
+    clientMsgTimes: List[datetime]
+
     
     
 

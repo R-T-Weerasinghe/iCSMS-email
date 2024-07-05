@@ -1,9 +1,12 @@
+from fastapi import HTTPException
 import nltk
 from typing import List
 from datetime import datetime, timedelta
 
+from pydantic import ValidationError
+
 from api.v2.models.threadsModel import ThreadSummary, GeneralThreadSummary, ThreadSummaryResponse, \
-    AllThreadsSummaryResponse
+    AllThreadsSummaryResponse, ThreadInDB, ConvoSummaryResponse
 from api.v2.dependencies.database import collection_conversations
 
 # TODO: Need to handle this differently. Download everytime when a request is made???
@@ -125,3 +128,14 @@ async def getAllThreads():
         all_threads.append(single_thread_summary)
 
     return AllThreadsSummaryResponse(threads=all_threads, total=total)
+
+
+def getThreadSummary(thread_id: str):
+    thread: dict = collection_conversations.find_one({'thread_id': thread_id})
+    if not thread:
+        raise HTTPException(status_code=404, detail=f"Thread with the thread id {thread_id} not found")
+    try:
+        thread_obj = ThreadInDB(**thread)
+    except ValidationError:
+        raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+    return ConvoSummaryResponse.convert(thread_obj)

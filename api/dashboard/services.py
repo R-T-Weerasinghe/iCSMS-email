@@ -272,8 +272,6 @@ async def get_data_for_sentiments_by_time(intervalInDaysStart: int, intervalInDa
     positive_values = []
     neutral_values = []    
     negative_values = []
-    
-    
     # get current time
     current_time = datetime.now(timezone.utc)
 

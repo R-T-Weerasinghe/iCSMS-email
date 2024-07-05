@@ -3,6 +3,14 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
+class ThreadInDB(BaseModel):
+    thread_id: str
+    subject: str
+    summary: str
+    updated_times: List[datetime]
+    products: List[str]
+
+
 class ThreadSummary(BaseModel):
     subject: str
     snippet: str
@@ -32,3 +40,13 @@ class AllThreadsSummaryResponse(BaseModel):
     total: int
     limit: int = 10
     skip: int = 0
+
+
+class ConvoSummaryResponse(BaseModel):
+    summary: str
+
+    @classmethod
+    def convert(cls, thread: ThreadInDB) -> "ConvoSummaryResponse":
+        return cls(
+            summary=thread.summary
+        )
