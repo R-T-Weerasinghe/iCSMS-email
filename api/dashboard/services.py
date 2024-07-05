@@ -559,8 +559,12 @@ async def get_data_for_issue_and_inquiry_frequency_by_products(intervalInDaysSta
     summation_result = []
     total_no_of_issues = sum(issue_freq)
     # Loop through the arrays and sum the corresponding elements
+    
     for freq, sentiment in zip(issue_freq, overall_sentiment_scores_of_topics):
-        summation_result.append((sentiment + 1) * (1 - (freq / total_no_of_issues))) 
+        if total_no_of_issues>0:
+            summation_result.append((sentiment + 1) * (1 - (freq / total_no_of_issues)))
+        else:
+            summation_result.append((sentiment + 1))
         
     min_value = min(summation_result)
     max_value = max(summation_result)
