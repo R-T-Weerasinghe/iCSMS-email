@@ -9,9 +9,9 @@ from api.email_filtering_and_info_generation.services import get_reading_emails_
 from fastapi.responses import JSONResponse
 import shutil
 
-from api.settings import services
 from api.v2.services import settingsService as services
 from utils.auth import get_current_user
+
 
 
 
