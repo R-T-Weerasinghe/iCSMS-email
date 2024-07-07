@@ -26,6 +26,23 @@ def get_overdue_datetime(opened_datetime: datetime) -> datetime:
     return overdue_date
 
 
+def get_first_client_msg_time(email_list: List[EmailInDB], client_name="client") -> datetime | None:
+    """
+    Returns the time of the first client message in the email list
+
+    Args:
+        email_list: list of emails in the correct order
+        client_name: name identifier used in database for the client
+
+    Returns:
+        time of the first client message or None
+    """
+    for email in email_list:
+        if email.sender_type == client_name:
+            return email.time
+    return None
+
+
 def get_first_response_time(email_list: List[EmailInDB], client_name="client", company_name="company") -> int | None:
     """
     Calculates the first response time of the company and outputs the time in minutes
