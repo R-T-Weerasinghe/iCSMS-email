@@ -46,7 +46,7 @@ def scale_score(score: float, *, scale_type: str="linear", precision: int=3) -> 
     if scaled_score > 1:
         return 1
 
-    rounded_scaled_score = round(scale_score, precision) # type: ignore
+    rounded_scaled_score = round(scaled_score, precision) # type: ignore
     return rounded_scaled_score
 
 
