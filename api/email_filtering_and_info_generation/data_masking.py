@@ -43,7 +43,7 @@ def create_entity_map(model_output, unmasked_text, products_words):
         entity = unmasked_text[start: end]
         
       
-        if token["entity_group"] not in ['USERAGENT','CREDITCARDISSUER', 'STATE'] and entity not in products_words:
+        if token["entity_group"] not in ['USERAGENT','CREDITCARDISSUER', 'STATE', 'URL', 'BUILDINGNUMBER', 'DATE', 'TIME', 'JOBTYPE'] and entity not in products_words:
             entity_map[entity] = token["entity_group"]
         
         print("EnTITY MAP", entity_map)

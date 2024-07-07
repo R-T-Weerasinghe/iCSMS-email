@@ -1,6 +1,8 @@
 import asyncio
+from datetime import datetime
 from api.email_filtering_and_info_generation.email_sending import send_email
-from api.email_filtering_and_info_generation.services import send_trig_event
+from api.email_filtering_and_info_generation.models import Maindashboard_trig_event
+from api.email_filtering_and_info_generation.services import send_main_dashboard_notification_trigger_event, send_trig_event
 from api.email_filtering_and_info_generation.services import get_triggers_array
 from api.email_filtering_and_info_generation.configurations.database import collection_notificationSendingChannels
 new_email_notification_info_array=[]
@@ -70,9 +72,22 @@ async def identify_criticality_notifcations(new_email_msg_array):
                         is_dashboard_notifications = notific_channel.get("is_dashboard_notifications")
                         
                         if is_dashboard_notifications:
-                            
                             # perform the POST call to the main dashboard
-                            
+                                maindashboard_trig_event = Maindashboard_trig_event(
+                                    triggered_trig_id = trigger['trigger_id'],
+                                    user_name = trigger['user_name'],
+                                    time = datetime.utcnow(),
+                                    email_msg_or_thread_id = new_email_msg['thread_id'],
+                                    title= f"""Criticality Email recorded from {new_email_msg["recipient"]}""",
+                                    description = f"""The following critical email was recorded from the account  {new_email_msg["recipient"]} on {new_email_msg["time"]}. \n\n
+                                Criticality Category: {new_email_msg['criticality_category']} \n
+                                sender: {new_email_msg["sender"]}\n
+                                subject of email: {new_email_msg["subject"]}\n\n
+                                {new_email_msg['body']}"""
+                                )
+                                await send_main_dashboard_notification_trigger_event(maindashboard_trig_event)
+                                
+                                # perform the POST call to the main dashboard                           
                                 print("sending notification to main dashboard")
                         
         

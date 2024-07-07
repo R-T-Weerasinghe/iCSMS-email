@@ -91,12 +91,15 @@ def init_oauth_flow(client_secrets_file: str, redirect_uri: str):
     flow = Flow.from_client_secrets_file(
         client_secrets_file,
         scopes = [
-            'https://www.googleapis.com/auth/gmail.modify',
-            'https://www.googleapis.com/auth/gmail.settings.basic'
+            'https://www.googleapis.com/auth/gmail.readonly',
+            'https://www.googleapis.com/auth/gmail.send',
+            'https://www.googleapis.com/auth/gmail.compose',
+            'https://www.googleapis.com/auth/gmail.modify'
         ],
 
         redirect_uri=redirect_uri
     )
+    flow.access_type = 'offline'
     return flow
 
 
@@ -104,7 +107,7 @@ async def login_async(id: int, email_acc_address:str):
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
     client_secrets_file = f'api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{id}/client_secret.json'
-    redirect_uri = f'http://127.0.0.1:8000/email/info_and_retrieval/callback?id={id}'
+    redirect_uri = f'http://127.0.0.1:8000/email/info_and_retrieval/callbackSending?id={id}'
     flow = init_oauth_flow(client_secrets_file, redirect_uri)
 
     state = os.urandom(16).hex()  # Generate a random state
@@ -141,8 +144,10 @@ async def send_email(id: int, recepient: str, subject: str, email_body: str, ):
 
     
     SCOPES = [
-    'https://www.googleapis.com/auth/gmail.modify',
-    'https://www.googleapis.com/auth/gmail.settings.basic'
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.send',
+    'https://www.googleapis.com/auth/gmail.compose',
+    'https://www.googleapis.com/auth/gmail.modify'
     ]
     
     

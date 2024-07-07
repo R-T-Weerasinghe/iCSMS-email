@@ -3,6 +3,17 @@
 from typing import List, Union
 from pydantic import BaseModel
 from datetime import datetime
+  
+    
+
+class TimeDataResponse(BaseModel):
+    # emailLoad: List[int]
+    firstResponseTimes: List[float]
+    overdueCount: int
+    avgFirstResponseTime: float # in minutes
+    # labels: List[str]
+    clientMsgTimes: List[datetime]
+
 
 class GetCurrentOverallSentimentProgress(BaseModel):
     positive_percentage:float
@@ -19,6 +30,7 @@ class StatCardSingleResponse(BaseModel):
     sub_title: str
     header: str
     sentiment: str
+    sentiment_score: Union[float|None]
     imgPath: str
     
     
@@ -51,6 +63,7 @@ class IssueInquiryFreqByProdcutsResponse(BaseModel):
     product_labels: List[str]
     issue_freq: List[int]
     inquiry_freq: List[int]
+    performence_scores: List[float]
     best_product: str
     worst_product: str
 
@@ -111,16 +124,19 @@ class OverdueIssuesResponse(BaseModel):
     total_ongoing_issues: int  
     
 
-class TimeDataResponse(BaseModel):
-    # emailLoad: List[int]
-    firstResponseTimes: List[float]
-    overdueCount: int
-    avgFirstResponseTime: float # in minutes
-    # labels: List[str]
-    clientMsgTimes: List[datetime]
+    
+    
+    
 
     
     
+    
+    
+    
+    
+    
+    
+
 
     
     

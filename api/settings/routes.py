@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from api.email_authorization.services import login_async
-from api.settings.models import DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, EmailINtegrationPostResponseMessage, GetNewIntergratingEmailID, IntergratingEmailData, IssueInqTypeData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, SSShiftData, SendSystemConfigData, UserRoleResponse
+from api.settings.models import DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, EmailINtegrationPostResponseMessage, GetNewIntergratingEmailID, IntergratingEmailData, IssueInqTypeData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, PutNotiSendingChannelsRecordDB, SSShiftData, SendSystemConfigData, UserRoleResponse
 from typing import Dict, Any, List
 from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
 from api.email_filtering_and_info_generation.services import get_reading_emails_array
@@ -29,13 +29,18 @@ async def receive_email_data(email_data: PostNewIntegratingEmail):
     email_address = email_data.emailAddress
     nick_name = email_data.nickName
     client_secret=email_data.clientSecret
-    result = services.check_client_secret_validation(client_secret, email_id)
-    
-    if  result == "success":
-        await services.integrateEmail(email_address,nick_name, client_secret)
-        return EmailINtegrationPostResponseMessage(message = "intergration complete")
+    already_exits = services.check_aready_existing_reading_email(client_secret)
+    print("already_exits",already_exits)
+    if not already_exits:
+        result = services.check_client_secret_validation(client_secret, email_id)
+        
+        if  result == "success":
+            await services.integrateEmail(email_address,nick_name, client_secret)
+            return EmailINtegrationPostResponseMessage(message = "intergration complete")
+        else:
+            return EmailINtegrationPostResponseMessage(message = result)
     else:
-         return EmailINtegrationPostResponseMessage(message = result)
+        return EmailINtegrationPostResponseMessage(message = "This email address is already being read. Please enter a different email address.")
 
     
 
@@ -51,13 +56,20 @@ async def receive_email_edit_data(email_data: PostEditingEmail):
     client_secret=email_data.clientSecret
     print("old email address", old_email_address)
     doc = collection_readingEmailAccounts.find_one({"address": old_email_address}, {"id": 1})
-    result = services.check_client_secret_validation(client_secret, doc['id'])
     
-    if  result == "success":
-        await services.updateEmail(old_email_address,email_address,nick_name, client_secret)
-        return EmailINtegrationPostResponseMessage(message = "edit complete")
+    already_exits = services.check_aready_existing_reading_email_in_edit(client_secret, doc['id'])
+    if not already_exits:
+        result = services.check_client_secret_validation(client_secret, doc['id'])
+        
+        if  result == "success":
+            await services.updateEmail(old_email_address,email_address,nick_name, client_secret)
+            return EmailINtegrationPostResponseMessage(message = "edit complete")
+        else:
+            return EmailINtegrationPostResponseMessage(message = result)
+        
     else:
-         return EmailINtegrationPostResponseMessage(message = result)
+        return EmailINtegrationPostResponseMessage(message = "This email address is already being read. Please enter a different email address.")
+
    
 
 
@@ -138,7 +150,7 @@ async def receive_notification_channel_data(noti_channel_data: PostingNotiSendin
         if await services.check_user_name_notisending(username):
             await services.update_noti_sending_emails(username, dashboardChannelChecked, emailChannelChecked, notiSendingEmails)
         else:
-            new_noti_sending_email_rec = NotiSendingChannelsRecord(
+            new_noti_sending_email_rec = PutNotiSendingChannelsRecordDB(
                 user_name=username,
                 is_dashboard_notifications=dashboardChannelChecked,
                 is_email_notifications=emailChannelChecked,

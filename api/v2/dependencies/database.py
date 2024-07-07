@@ -16,5 +16,6 @@ collection_issues = db['Issues']
 collection_inquiries = db['Inquiries']
 collection_overdue_trigger_events = db['OverdueTriggerEvents']
 collection_configurations = db['Configurations'] 
+collection_maindashboard_trigger_event = db['MainDashboardTriggerEvents'] 
 
 

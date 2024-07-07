@@ -56,6 +56,7 @@ def retrieving_emails_loop():
 
 
 def check_notifications_loop():
+    print("in main.py check_notifications_loop")
     asyncio.run(check_notifications_for_managers())
 
 
@@ -73,10 +74,10 @@ def slide_time_window_loop():
 #     threading.Thread(target=retrieving_emails_loop, args=(), daemon=True).start()
 
 #     # start the continous loop to check notifications in a new thread
-#     #threading.Thread(target=check_notifications_loop, args=(), daemon=True).start()
+#     threading.Thread(target=check_notifications_loop, args=(), daemon=True).start()
 
-# start the continous loop to delete data and slide the time window in a new thread
-# threading.Thread(target=slide_time_window_loop, args=(), daemon=True).start()
+#     # start the continous loop to delete data and slide the time window in a new thread
+#     threading.Thread(target=slide_time_window_loop, args=(), daemon=True).start()
 
 
 @app.get('/', response_class=RedirectResponse, include_in_schema=False)

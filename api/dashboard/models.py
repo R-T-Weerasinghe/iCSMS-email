@@ -19,6 +19,7 @@ class StatCardSingleResponse(BaseModel):
     sub_title: str
     header: str
     sentiment: str
+    sentiment_score: Union[float|None]
     imgPath: str
     
     

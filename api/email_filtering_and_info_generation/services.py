@@ -7,8 +7,8 @@ from pymongo import MongoClient
 # import sys
 # sys.path.append('..') 
 from api.email_filtering_and_info_generation.configurations.database import collection_email_msgs
-from api.email_filtering_and_info_generation.configurations.database import collection_triger_events,collection_trigers,collection_readingEmailAccounts,collection_suggestions, collection_conversations, collection_issues, collection_inquiries, collection_overdue_trigger_events, collection_configurations
-from api.email_filtering_and_info_generation.models import Convo_summary, Email_msg, InquiryInDB, IssueInDB, Overdue_trig_event,Trigger_event,Reading_email_acc,Suggestion
+from api.email_filtering_and_info_generation.configurations.database import collection_triger_events,collection_trigers,collection_readingEmailAccounts,collection_suggestions, collection_conversations, collection_issues, collection_inquiries, collection_overdue_trigger_events, collection_configurations,collection_maindashboard_trigger_event
+from api.email_filtering_and_info_generation.models import Convo_summary, Email_msg, InquiryInDB, IssueInDB, Maindashboard_trig_event, Overdue_trig_event,Trigger_event,Reading_email_acc,Suggestion
 from api.email_filtering_and_info_generation.schemas import individual_email_msg_serial,list_email_msg_serial
 from api.email_filtering_and_info_generation.schemas import individual_trigger_serial,list_trigger_serial
 from api.email_filtering_and_info_generation.schemas import individual_readingEmailAcc_serial, list_readingEmailAcc_serial
@@ -209,7 +209,7 @@ async def get_overall_sentiment_value(recipient:str, intervalIndays: int):
         no_of_emails += 1
         total_sentiment_score = total_sentiment_score + sentiment_score
     
-    #print("total_sentiment_score", total_sentiment_score, "no_of_emails", no_of_emails)
+    print("total_sentiment_score", total_sentiment_score, "no_of_emails", no_of_emails, "email address", recipient)
     
     if no_of_emails>0:
         avg_sentiment_score = round(total_sentiment_score/no_of_emails,3)
@@ -237,7 +237,9 @@ async def get_overdue_issues(overdue_margin_time):
             "$project": {
                 "_id": 0,
                 "thread_id": 1,
-                "recepient_email":1
+                "recepient_email":1,
+                "issue_summary":1,
+                "thread_subject":1
             }
         }
     ]
@@ -263,7 +265,9 @@ async def get_overdue_inquiries(overdue_margin_time):
             "$project": {
                 "_id": 0,
                 "thread_id": 1,
-                "recepient_email":1
+                "recepient_email":1,
+                "inquiry_summary":1,
+                "thread_subject":1
             }
         }
     ]
@@ -286,6 +290,17 @@ async def send_overdue_trigger_event(overdue_trigger_event: Overdue_trig_event):
 
 
 
+async def send_main_dashboard_notification_trigger_event(maindashboard_trigger_event: Maindashboard_trig_event):
+    try:
+        # Insert the tig_event dictionary into the MongoDB collection
+        result = collection_maindashboard_trigger_event.insert_one(maindashboard_trigger_event.dict())
+        
+        # Return the ID of the inserted document
+        return {"message": "new overdue trigger event sent successfully", "inserted_id": str(result.inserted_id)}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 async def getProductsList():
 
  result =  collection_configurations.find_one({"id": 1})
