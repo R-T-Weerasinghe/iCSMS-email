@@ -179,7 +179,7 @@ def build_query(
     if status:
         query["$or"] = [{"status": {"$in": status}}, {"ongoing_status": {"$in": status}}]
 
-    if dateFrom and dateTo:
+    if type != "suggestion" and dateFrom and dateTo:
         query["start_time"] = {"$gte": datetime.combine(dateFrom, datetime.min.time()), "$lte": datetime.combine(dateTo, datetime.min.time())}
     if q:
         query["$text"] = {"$search": q}
