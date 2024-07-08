@@ -7,6 +7,8 @@ from api.v2.routers.filtersRouter import router as filterRouter
 from api.v2.routers.dataRouter import router as dataRouter
 from api.v2.routers.threadsRouter import router as threadsRouter
 from api.v2.routers.dashboardRouter import router as dashboardRouter
+from api.v2.routers.settingsRouter import router as settingsRouter
+from api.v2.routers.BIAppsRouter import router as BIRouter
 
 router = APIRouter()
 router.include_router(issuesRouter)
@@ -16,6 +18,8 @@ router.include_router(filterRouter)
 router.include_router(dataRouter)
 router.include_router(threadsRouter)
 router.include_router(dashboardRouter)
+router.include_router(settingsRouter)
+router.include_router(BIRouter)
 
 @router.get("/")
 async def root():

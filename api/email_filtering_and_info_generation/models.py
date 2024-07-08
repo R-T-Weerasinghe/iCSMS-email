@@ -8,6 +8,7 @@ class Email_msg(BaseModel):
     recipient:str
     sender:str
     subject:str
+    type: str
     thread_id:str
     criticality_category:str
     org_sentiment_score:float

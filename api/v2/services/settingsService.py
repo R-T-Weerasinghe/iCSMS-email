@@ -4,7 +4,8 @@ from fastapi import HTTPException
 from api.email_filtering_and_info_generation.models import Reading_email_acc
 from api.v2.models.settingsModel import  EditingEmailData, EmailAcc, GetNewIntergratingEmailID, NotiSendingChannelsRecord, PutNotiSendingChannelsRecordDB, SSShiftData
 from api.email_filtering_and_info_generation.services import send_reading_email_account, get_reading_emails_array
-from api.v2.dependencies.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
+#from api.v2.dependencies.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
+from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
 from api.email_filtering_and_info_generation.services import get_reading_emails_array
 from google.auth.exceptions import DefaultCredentialsError
 from google.auth.exceptions import OAuthError

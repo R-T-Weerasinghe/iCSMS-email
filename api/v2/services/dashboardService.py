@@ -6,13 +6,16 @@ from pydantic import ValidationError
 from typing import List
 from fastapi import HTTPException
 from api.v2.models.dashboardModel import BestPerformingEmailAccResponse, EmailAccEfficiencyResponse, GaugeChartResponse, InquiriesByEfficiencyEffectivenessResponse, IssueInquiryFreqByProdcutsResponse, IssueInquiryFreqByTypeResponse, IssuesByEfficiencyEffectivenessResponse, OngoingAndClosedStatsResponse, OverallyEfficiencyEffectivenessPecentagesResponse, OverdueIssuesResponse, SentimentsByTimeResponse, SentimentsByTopicResponse, SentimentsDistributionByTimeResponse, GetCurrentOverallSentimentProgress, StatCardSingleResponse, WordCloudSingleResponse
-from api.v2.dependencies.database import collection_notificationSendingChannels,collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
+#from api.v2.dependencies.database import collection_notificationSendingChannels,collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
+from api.email_filtering_and_info_generation.configurations.database import collection_notificationSendingChannels,collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
+
 from datetime import datetime, timedelta, timezone
 import random
 
 from api.email_filtering_and_info_generation.schemas import list_readingEmailAcc_serial
 
-from api.v2.dependencies.database import collection_issues, collection_inquiries
+#from api.v2.dependencies.database import collection_issues, collection_inquiries
+from api.email_filtering_and_info_generation.configurations.database import collection_issues, collection_inquiries
 from api.v2.models.inquiriesModel import InquiryInDB
 from api.v2.models.issuesModel import IssueInDB
 from api.v2.services.utilityService import build_query, get_first_response_time, get_first_client_msg_time
@@ -94,7 +97,7 @@ async def get_current_overall_sentiments(intervalInDaysStart: int, intervalInDay
     n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
     
     # Query MongoDB for documents matching recipients
-    query = {"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}}
+    query = {"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "type":"client"}
     results = collection_email_msgs.find(query, {"_id": 0, "our_sentiment_score": 1})
     
     # Extract our_sentiment_score values
@@ -154,7 +157,7 @@ async def get_data_for_topic_cloud(intervalInDaysStart: int, intervalInDaysEnd:i
     products_frequencies = {product: 0 for product in products}
 
     # Query MongoDB to retrieve documents
-    cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}})
+    cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "type":"client"})
 
     # Iterate over each document
     for document in cursor:
@@ -192,7 +195,8 @@ async def get_data_for_word_cloud(intervalInDaysStart: int, intervalInDaysEnd:in
         # Query MongoDB to retrieve documents
         prod_count = collection_email_msgs.count_documents({
                 "time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
-                "products": {"$in": [product]}
+                "products": {"$in": [product]},
+                "type":"client"
             })
         
 
@@ -223,7 +227,7 @@ async def get_data_for_stat_cards(intervalInDaysStart: int, intervalInDaysEnd:in
     result: List[StatCardSingleResponse] = []
     for recepient_email in recepient_emails:
         query = {"recipient": recepient_email["address"]}
-        cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "recipient": recepient_email["address"]})
+        cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "recipient": recepient_email["address"], "type":"client"})
         
         if cursor:
             
@@ -304,7 +308,7 @@ async def get_data_for_sentiments_by_topic(intervalInDaysStart: int, intervalInD
     for product in products:
  
         # Query MongoDB for emails with the current topic
-        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}})
+        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}, "type":"client"})
 
         # find the total no of emails per each topic
         totalNoOFEmails = 0
@@ -378,7 +382,7 @@ async def get_data_for_sentiments_by_time(intervalInDaysStart: int, intervalInDa
 
         # Query to find emails that arrived in the checking day
         query = {"time": {"$gte": checking_day.replace(hour=0, minute=0, second=0, microsecond=0),
-                        "$lt": checking_day.replace(hour=23, minute=59, second=59, microsecond=999999)}}
+                        "$lt": checking_day.replace(hour=23, minute=59, second=59, microsecond=999999)}, "type":"client"}
 
         # Retrieve emails
         checkingday_emails = collection_email_msgs.find(query)
@@ -457,7 +461,7 @@ async def get_data_for_sentiments_distribution_of_topics(intervalInDaysStart: in
         labels_freq.append(product)
         
         # Query MongoDB for emails with the current topic
-        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}}, {"_id": 0, "our_sentiment_score": 1})
+        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "type":"client", "products": {"$in": [product]}}, {"_id": 0, "our_sentiment_score": 1})
 
         
         if emails_with_product!= []:
@@ -530,7 +534,7 @@ async def get_data_value_for_gauge_chart(intervalInDaysStart: int, intervalInDay
     n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
 
     # Query MongoDB collection for emails within the past n days for the given userId
-    emails = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}})
+    emails = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "type":"client"})
     
     
         
@@ -601,7 +605,7 @@ async def get_data_for_issue_and_inquiry_frequency_by_products(intervalInDaysSta
         
         
         #-------------------finding the best and worst product by sentiment----------------------------
-        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}})
+        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}, "type":"client"})
 
         # find the total no of emails per each topic
         totalNoOFEmails = 0
