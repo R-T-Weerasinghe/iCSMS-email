@@ -182,7 +182,7 @@ def build_query(
         query["$or"] = [{"status": {"$in": status}}, {"ongoing_status": {"$in": status}}]
 
     if type != "suggestion" and dateFrom and dateTo:
-        query["start_time"] = {"$gte": datetime.combine(dateFrom, datetime.min.time()), "$lte": datetime.combine(dateTo, datetime.min.time())}
+        query["start_time"] = {"$gte": datetime.combine(dateFrom, datetime.min.time()), "$lte": datetime.combine(dateTo, datetime.max.time())}
     if q:
         query["$text"] = {"$search": q}
 
