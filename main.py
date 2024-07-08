@@ -24,6 +24,8 @@ from api.email_authorization.routes import router as authorization_router
 from api.filtering.routes import router as filtering_router
 from api.settings.routes import router as settings_router
 from api.dashboard.routes import router as dashboard_router
+from api.v2.routers.dashboardRouter import router as dashboard_router_v2
+from api.v2.routers.settingsRouter import router as settings_router_v2
 from api.suggestions_page.routes import router as suggestions_router
 from api.v2.routers.mainRouter import router as v2_router
 
@@ -49,6 +51,7 @@ app.include_router(authorization_router, prefix=EMAIL_PREFIX)
 app.include_router(dashboard_router,prefix=EMAIL_PREFIX)
 app.include_router(suggestions_router,prefix=EMAIL_PREFIX)
 app.include_router(v2_router, prefix=f"{EMAIL_PREFIX}/v2")
+
 
 
 def retrieving_emails_loop():

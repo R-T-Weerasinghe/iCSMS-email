@@ -90,7 +90,8 @@ async def summarize_conversations(new_email_msg_array):
                                 summary=response.content,
                                 products=new_email_msg["products"])
             
-            await send_convo_summary(new_convo_summary)
+            print("sent thread summary")
+            #await send_convo_summary(new_convo_summary)
         
         
         

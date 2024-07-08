@@ -3,9 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from api.email_authorization.services import login_async
 from api.v2.models.settingsModel import Trigger,DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, EmailINtegrationPostResponseMessage, GetNewIntergratingEmailID, IntergratingEmailData, IssueInqTypeData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, PutNotiSendingChannelsRecordDB, SSShiftData, SendSystemConfigData, UserRoleResponse
 from typing import Dict, Any, List
+#from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
 from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
-from api.email_filtering_and_info_generation.services import get_reading_emails_array
 
+from api.email_filtering_and_info_generation.services import get_reading_emails_array
 from fastapi.responses import JSONResponse
 import shutil
 
