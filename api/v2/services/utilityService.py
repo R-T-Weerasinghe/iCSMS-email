@@ -167,8 +167,10 @@ def build_query(
         dict: The query dict document.
     """
     query = {}
-    if company:
+    if type != "suggestion" and company:
         query["recepient_email"] = {"$in": company}
+    if type == "suggestion" and company:
+        query["recepient"] = {"$in": company}
     if client:
         query["sender_email"] = {"$in": client}
     if tags:
@@ -179,13 +181,13 @@ def build_query(
     if status:
         query["$or"] = [{"status": {"$in": status}}, {"ongoing_status": {"$in": status}}]
 
-    if dateFrom and dateTo:
+    if type != "suggestion" and dateFrom and dateTo:
         query["start_time"] = {"$gte": datetime.combine(dateFrom, datetime.min.time()), "$lte": datetime.combine(dateTo, datetime.min.time())}
     if q:
         query["$text"] = {"$search": q}
 
     if type == "suggestion" and dateFrom and dateTo:
-        query["date"] = {"$gte": datetime.combine(dateFrom, datetime.min.time()), "$lte": datetime.combine(dateTo, datetime.min.time())}
+        query["date"] = {"$gte": datetime.combine(dateFrom, datetime.min.time()), "$lte": datetime.combine(dateTo, datetime.max.time())}
     return query
 
 
