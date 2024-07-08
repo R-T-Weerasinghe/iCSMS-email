@@ -167,8 +167,10 @@ def build_query(
         dict: The query dict document.
     """
     query = {}
-    if company:
+    if type != "suggestion" and company:
         query["recepient_email"] = {"$in": company}
+    if type == "suggestion" and company:
+        query["recepient"] = {"$in": company}
     if client:
         query["sender_email"] = {"$in": client}
     if tags:
