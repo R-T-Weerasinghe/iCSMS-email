@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Literal
 from fastapi import APIRouter
 
 from api.v2.models.threadsModel import ThreadSummaryResponse, AllThreadsSummaryResponse, ConvoSummaryResponse
@@ -16,8 +16,13 @@ def get_thread_summary(thread_id: str):
     return getThreadSummary(thread_id)
 
 @router.get("/threads", response_model=AllThreadsSummaryResponse)
-async def get_all_threads():
-    return await getAllThreads()
+async def get_all_threads(
+    limit: int, 
+    skip: int, 
+    sort_by:Literal["opened", "update"] = None, 
+    sort_order:Literal["asc", "desc"] = None
+):
+    return await getAllThreads(limit, skip, sort_by, sort_order)
 
 
 
