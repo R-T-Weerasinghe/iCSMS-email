@@ -3,7 +3,9 @@ import random
 from typing import List
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
-from api.v2.models.dashboardModel import BestPerformingEmailAccResponse, EmailAccEfficiencyResponse, GaugeChartResponse, InquiriesByEfficiencyEffectivenessResponse, IssueInquiryFreqByProdcutsResponse, IssueInquiryFreqByTypeResponse, IssuesByEfficiencyEffectivenessResponse, OngoingAndClosedStatsResponse, OverallyEfficiencyEffectivenessPecentagesResponse, OverdueIssuesResponse, SentimentsByTimeResponse, SentimentsByTopicResponse, SentimentsDistributionByTimeResponse, GetCurrentOverallSentimentProgress, StatCardSingleResponse, WordCloudSingleResponse
+from api.v2.models.dashboardModel import BestPerformingEmailAccResponse, EmailAccEfficiencyResponse, GaugeChartResponse, InquiriesByEfficiencyEffectivenessResponse, IssueInquiryFreqByProdcutsResponse, IssueInquiryFreqByTypeResponse, IssuesByEfficiencyEffectivenessResponse, OngoingAndClosedStatsResponse, OverallyEfficiencyEffectivenessPecentagesResponse, OverdueIssuesResponse, SentimentsByTimeResponse, SentimentsByTopicResponse, SentimentsDistributionByTimeResponse, GetCurrentOverallSentimentProgress, StatCardSingleResponse, TimeGraph, WordCloudSingleResponse
+from api.v2.dependencies.database import collection_notificationSendingChannels,collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
+
 from api.v2.services import dashboardService as services
 from api.v2.services.dashboardService import getTimeData
 from api.v2.models.dashboardModel import TimeDataResponse
@@ -145,6 +147,13 @@ async def get_data_for_overdue_issues(intervalInDaysStart: int, intervalInDaysEn
     return result          
         
 
+@router.get("/dashboard/first-response-time", response_model=TimeGraph)
+async def get_first_response_time(intervalInDaysStart: int, intervalInDaysEnd:int):
+    result = await services.getFirstResponseTime(intervalInDaysStart, intervalInDaysEnd)
+    return result
 
 
-
+@router.get("/dashboard/resolution-time", response_model=TimeGraph)
+async def get_resolution_time(intervalInDaysStart: int, intervalInDaysEnd:int):
+    result = await services.getResolutionTime(intervalInDaysStart, intervalInDaysEnd)
+    return result
