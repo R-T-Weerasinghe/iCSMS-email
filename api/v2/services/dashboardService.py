@@ -1,21 +1,17 @@
-from datetime import datetime, timedelta
+from fastapi import HTTPException
 import pandas as pd
-from fastapi import HTTPException
 from pydantic import ValidationError
-
 from typing import List
-from fastapi import HTTPException
-from api.v2.models.dashboardModel import BestPerformingEmailAccResponse, EmailAccEfficiencyResponse, GaugeChartResponse, InquiriesByEfficiencyEffectivenessResponse, IssueInquiryFreqByProdcutsResponse, IssueInquiryFreqByTypeResponse, IssuesByEfficiencyEffectivenessResponse, OngoingAndClosedStatsResponse, OverallyEfficiencyEffectivenessPecentagesResponse, OverdueIssuesResponse, SentimentsByTimeResponse, SentimentsByTopicResponse, SentimentsDistributionByTimeResponse, GetCurrentOverallSentimentProgress, StatCardSingleResponse, WordCloudSingleResponse
-from api.v2.dependencies.database import collection_notificationSendingChannels,collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
 from datetime import datetime, timedelta, timezone
 import random
 
 from api.email_filtering_and_info_generation.schemas import list_readingEmailAcc_serial
-
+from api.v2.dependencies.database import collection_notificationSendingChannels,collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
+from api.v2.models.dashboardModel import BestPerformingEmailAccResponse, EmailAccEfficiencyResponse, GaugeChartResponse, InquiriesByEfficiencyEffectivenessResponse, IssueInquiryFreqByProdcutsResponse, IssueInquiryFreqByTypeResponse, IssuesByEfficiencyEffectivenessResponse, OngoingAndClosedStatsResponse, OverallyEfficiencyEffectivenessPecentagesResponse, OverdueIssuesResponse, SentimentsByTimeResponse, SentimentsByTopicResponse, SentimentsDistributionByTimeResponse, GetCurrentOverallSentimentProgress, StatCardSingleResponse, WordCloudSingleResponse
 from api.v2.dependencies.database import collection_issues, collection_inquiries
 from api.v2.models.inquiriesModel import InquiryInDB
 from api.v2.models.issuesModel import IssueInDB
-from api.v2.services.utilityService import build_query, get_first_response_time, get_first_client_msg_time
+from api.v2.services.utilityService import build_query, get_first_response_time, get_first_client_msg_time, get_resolution_time
 
 async def getTimeData(intervalInDaysStart: int, intervalInDaysEnd:int):
     dateTimeStart = datetime.now() - timedelta(days=intervalInDaysStart)
@@ -68,7 +64,7 @@ async def getTimeData(intervalInDaysStart: int, intervalInDaysEnd:int):
     # Set the time as index
     df.set_index("time", inplace=True)
     # Resample data in 5-minute intervals and calculate the mean
-    resampled_df = df.resample("5T").mean().dropna()
+    resampled_df = df.resample("5min").mean().dropna()
     # Convert the resampled DataFrame back to lists
     resampled_times = resampled_df.index.strftime("%Y-%m-%dT%H:%M:%S").tolist()
     resampled_first_response_times = resampled_df["response_time"].tolist()
@@ -1222,25 +1218,19 @@ def get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_day
     return count_total_closed_certain_eff_issues
 
 def get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end, reading_email_acc, efficiency_category ):
-    
     count_total_closed_certain_eff_inquiry = collection_inquiries.count_documents({
         "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc,
         "status":"closed",
         "efficiency":efficiency_category
         })
-    
     return count_total_closed_certain_eff_inquiry
 
 
 # generate colors for the sentiments by topic bar chart
 def generateRandomColorForBarChart(score):
-
-        
     if score>=-0.3 and score<=0.3:
-        
         if score>=-0.15 and score<=0.15:
-        
             red = random.randint(200, 225)
             green = random.randint(200, 225)
             blue = random.randint(0, 150)
@@ -1248,9 +1238,6 @@ def generateRandomColorForBarChart(score):
             red = random.randint(225, 255)
             green = random.randint(225, 255)
             blue = random.randint(0, 150)  
-             
-
-        
     elif score>0.3:
         if score>0.6:
             red = random.randint(0, 255)
@@ -1260,7 +1247,6 @@ def generateRandomColorForBarChart(score):
             red = random.randint(0, 255)
             green = random.randint(200, 255)
             blue = random.randint(0, 255)
-        
     elif score<-0.3:
         if score<-0.6:
             red = random.randint(225, 255)
@@ -1270,25 +1256,140 @@ def generateRandomColorForBarChart(score):
             red = random.randint(200, 255)
             green = random.randint(0, 255)
             blue = random.randint(0, 255)        
-    
            
     color = f'rgba({red}, {green}, {blue}, 0.9)'  
     return color
 
 
-
 def generateRandomColor():
-    
     # generate random color 
     red = random.randint(0, 255)
     green = random.randint(0, 255)
     blue = random.randint(0, 255)
-    
     color = f'rgba({red}, {green}, {blue}, 0.9)' 
-    
     return color
 
 
 async def get_reading_emails_array():
     email_acc_array = list_readingEmailAcc_serial(collection_readingEmailAccounts.find())
     return email_acc_array
+
+
+async def getFirstResponseTime(intervalInDaysStart: int, intervalInDaysEnd:int):
+    dateTimeStart = datetime.now() - timedelta(days=intervalInDaysStart)
+    dateTimeEnd = datetime.now() - timedelta(days=intervalInDaysEnd)
+
+    dateStart = dateTimeStart.replace(hour=0, minute=0, second=0, microsecond=0)
+    dateEnd = dateTimeEnd.replace(hour=0, minute=0, second=0, microsecond=0)
+    first_response_times = []
+    client_msg_times = []
+
+    # FRT for issues
+    query = build_query(0, 0, "issue", None, None, None, None, None, dateStart, dateEnd, None)
+    issues = list(collection_issues.find(query))
+    for issue in issues:
+        try:
+            issue_obj = IssueInDB(**issue)
+        except ValidationError:
+            raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+        emails = issue_obj.issue_convo_summary_arr
+        frt = get_first_response_time(emails)
+        client_msg_time = get_first_client_msg_time(emails)
+        if frt:
+            first_response_times.append(frt)
+            client_msg_times.append(client_msg_time)
+
+    # FRT for inquiries
+    query = build_query(0, 0, "inquiry", None, None, None, None, None, dateStart, dateEnd, None)
+    inquiries = list(collection_inquiries.find(query))
+    for inquiry in inquiries:
+        try:
+            inquiry_obj = InquiryInDB(**inquiry)
+        except ValidationError:
+            raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+        emails = inquiry_obj.inquiry_convo_summary_arr
+        frt = get_first_response_time(emails)
+        client_msg_time = get_first_client_msg_time(emails)
+        if frt:
+            first_response_times.append(frt)
+            client_msg_times.append(client_msg_time)
+
+    avg_frt = sum(first_response_times) / len(first_response_times) if first_response_times else 0
+
+    # Resampling
+    df = pd.DataFrame({
+        "time": pd.to_datetime(client_msg_times),
+        "response_time": first_response_times
+    })
+    # Set the time as index
+    df.set_index("time", inplace=True)
+    # Resample data in 5-minute intervals and calculate the mean
+    resampled_df = df.resample("5min").mean().dropna()
+    # Convert the resampled DataFrame back to lists
+    resampled_times = resampled_df.index.strftime("%Y-%m-%dT%H:%M:%S").tolist()
+    resampled_first_response_times = resampled_df["response_time"].tolist()
+    return {
+        "x": resampled_times,
+        "y": resampled_first_response_times,
+        "avg": avg_frt
+    }
+
+
+async def getResolutionTime(intervalInDaysStart: int, intervalInDaysEnd:int):
+    dateTimeStart = datetime.now() - timedelta(days=intervalInDaysStart)
+    dateTimeEnd = datetime.now() - timedelta(days=intervalInDaysEnd)
+
+    dateStart = dateTimeStart.replace(hour=0, minute=0, second=0, microsecond=0)
+    dateEnd = dateTimeEnd.replace(hour=0, minute=0, second=0, microsecond=0)
+    resolution_times = []
+    client_msg_times = []
+
+    # RT for issues
+    query = build_query(0, 0, "issue", None, None, None, None, None, dateStart, dateEnd, None)
+    issues = list(collection_issues.find(query))
+    for issue in issues:
+        try:
+            issue_obj = IssueInDB(**issue)
+        except ValidationError:
+            raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+        emails = issue_obj.issue_convo_summary_arr
+        rt = get_resolution_time(emails, issue_obj.status)
+        client_msg_time = get_first_client_msg_time(emails)
+        if rt:
+            resolution_times.append(rt)
+            client_msg_times.append(client_msg_time)
+    
+    # RT for inquiries
+    query = build_query(0, 0, "inquiry", None, None, None, None, None, dateStart, dateEnd, None)
+    inquiries = list(collection_inquiries.find(query))
+    for inquiry in inquiries:
+        try:
+            inquiry_obj = InquiryInDB(**inquiry)
+        except ValidationError:
+            raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+        emails = inquiry_obj.inquiry_convo_summary_arr
+        rt = get_resolution_time(emails, inquiry_obj.status)
+        client_msg_time = get_first_client_msg_time(emails)
+        if rt:
+            resolution_times.append(rt)
+            client_msg_times.append(client_msg_time)
+
+    avg_rt = sum(resolution_times) / len(resolution_times) if resolution_times else 0
+
+    # resampling
+    df = pd.DataFrame({
+        "time": pd.to_datetime(client_msg_times),
+        "resolution_time": resolution_times
+    })
+    # Set the time as index
+    df.set_index("time", inplace=True)
+    # Resample data in 5-minute intervals and calculate the mean
+    resampled_df = df.resample("5min").mean().dropna()
+    # Convert the resampled DataFrame back to lists
+    resampled_times = resampled_df.index.strftime("%Y-%m-%dT%H:%M:%S").tolist()
+    resampled_resolution_times = resampled_df["resolution_time"].tolist()
+    return {
+        "x": resampled_times,
+        "y": resampled_resolution_times,
+        "avg": avg_rt
+    }
