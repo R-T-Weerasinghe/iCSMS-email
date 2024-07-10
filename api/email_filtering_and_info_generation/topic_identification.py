@@ -62,8 +62,17 @@ async def identify_topics(new_email_msg_array):
             #     #     new_topics_arr.append(topic)
                 
                 
-            products_script2 = f"""if this email '{new_email_msg["body"]}'
-                                    is regarding any of the products in the following products list '{products}', output the matched products as a list which is in the following format '["product1", "product2"]'. Don't output anything other than matched products list. if no products are matched output and empty list like this '[]'"""    
+            products_script2 = f"""Given the following email body:
+
+                                    "{new_email_msg["body"]}"
+
+                                    And the list of products offered by the company:
+
+                                    "{products}"
+
+                                    Identify which products are mentioned in the email. Output the matched products as a list in the format: '["product1", "product2"]'. 
+                                    If no products are matched, output an empty list: '[]'. 
+                                    Usually each email is regarding one of the products so look carefully for products mentioned."""    
             
             response = llm.invoke(products_script2)  
             

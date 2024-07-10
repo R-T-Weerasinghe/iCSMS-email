@@ -358,7 +358,7 @@ async def repeat_every_10mins():
             print("\n")
             print("\n")
             # print("RAW READ NEW EMAIL MESG ARRAY", new_email_msg_array)
-            mask_email_messages(new_email_msg_array)
+            await mask_email_messages(new_email_msg_array)
             print("MASKED EMAIL MESSAGES", new_email_msg_array)
             await format_email_bodies(new_email_msg_array)
             print("\n")
@@ -371,7 +371,6 @@ async def repeat_every_10mins():
             print("\n criticality identified emails")
             print("\n")
             print(new_email_msg_array)
-            await identify_criticality_notifcations()
             # #await identify_notifcations(new_email_msg_array)
             await identify_topics(new_email_msg_array)
             print("\n")
@@ -393,11 +392,11 @@ async def repeat_every_10mins():
             print(new_email_msg_array)
             # print("---------------------------------------finished identifying summaries------------------------")
             # print(new_email_msg_array)
-            await push_new_emails_to_DB(new_email_msg_array)
+            #await push_new_emails_to_DB(new_email_msg_array)
             print("database update successful")
-            summarize_conversations(new_email_msg_array)
+            await summarize_conversations(new_email_msg_array)
             print("conversation summaries identified")
-                    
+                            
         except Exception as e:
             print("Error:", e)
         # Calculate the next execution time
