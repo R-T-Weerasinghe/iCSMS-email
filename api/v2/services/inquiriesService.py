@@ -28,7 +28,13 @@ def getInquiries(
     Get inquiries based on the given parameters.
     """
     query = build_query(skip, limit, "inquiry", r, s, tags, allTags, status, dateFrom, dateTo, q)
-    inquiries: List[dict] = list(collection_inquiries.find(query).skip(skip).limit(limit))
+    inquiries: List[dict] = list(
+        collection_inquiries
+            .find(query)
+            .sort([('start_time', -1), ('updated_time', -1)])
+            .skip(skip)
+            .limit(limit)
+    )
     try:
         inquiries_objs = [InquiryInDB(**inquiry) for inquiry in inquiries]
     except ValidationError:

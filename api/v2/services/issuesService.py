@@ -11,8 +11,8 @@ from api.v2.services.utilityService import (get_overdue_datetime, get_first_resp
 
 
 def getIssues(
-    skip: int, 
-    limit: int, 
+    skip: int,
+    limit: int,
     r: Optional[List[str]] = None,
     s: Optional[List[str]] = None,
     tags: Optional[List[str]] = None,
@@ -27,13 +27,22 @@ def getIssues(
     """
     Get issues based on the given parameters.
     """
-    query = build_query(skip, limit, "issue", r, s, tags, allTags, status, dateFrom, dateTo, q)
-    issues: List[dict] = list(collection_issues.find(query).skip(skip).limit(limit))
+    query = build_query(skip, limit, "issue", r, s, tags,
+                        allTags, status, dateFrom, dateTo, q)
+    issues: List[dict] = list(
+        collection_issues
+        .find(query)
+        .sort([("start_time", -1), ("updated_time", -1)])
+        .skip(skip)
+        .limit(limit)
+    )
     try:
         issues_objs = [IssueInDB(**issue) for issue in issues]
     except ValidationError:
-        raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
-    issues_return: List[Issue] = [Issue.convert(issue) for issue in issues_objs]
+        raise HTTPException(
+            status_code=500, detail="Database schema error. Schema mismatch")
+    issues_return: List[Issue] = [
+        Issue.convert(issue) for issue in issues_objs]
 
     return {
         "issues": issues_return,
@@ -49,11 +58,13 @@ def getIssueByThreadId(thread_id: str) -> IssueDetailed:
     """
     issue: dict = collection_issues.find_one({"thread_id": thread_id})
     if not issue:
-        raise HTTPException(status_code=404, detail=f"Issue with the thread id {thread_id} not found")
+        raise HTTPException(status_code=404,
+                            detail=f"Issue with the thread id {thread_id} not found")
     try:
         issue_obj = IssueInDB(**issue)
     except ValidationError:
-        raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+        raise HTTPException(
+            status_code=500, detail="Database schema error. Schema mismatch")
     emails: List[EmailInDB] = issue_obj.issue_convo_summary_arr
     dateOverdue = get_overdue_datetime(issue_obj.start_time)
     firstResponseTime = get_first_response_time(emails)
@@ -61,5 +72,6 @@ def getIssueByThreadId(thread_id: str) -> IssueDetailed:
     resolutionTime = get_resolution_time(emails, issue_obj.status)
 
     return IssueDetailed.convert_additional(
-        IssueInDB(**issue), dateOverdue, firstResponseTime, avgResponseTime, resolutionTime
+        IssueInDB(
+            **issue), dateOverdue, firstResponseTime, avgResponseTime, resolutionTime
     )
