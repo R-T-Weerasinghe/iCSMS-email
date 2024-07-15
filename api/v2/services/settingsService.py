@@ -234,10 +234,10 @@ async def update_noti_sending_emails(user_name: str, is_dashboard_notifications:
                     "noti_sending_emails": combined_emails}}
                 )
                 
-                if result.modified_count == 1:
-                    return {"message": "Crticality Trigger updated successfully"}
-                else:
-                    raise HTTPException(status_code=404, detail="Trigger not found")                
+                # if result.modified_count == 1:
+                #     return {"message": "Crticality Trigger updated successfully"}
+                # else:
+                #     raise HTTPException(status_code=404, detail="Trigger not found")                
           
             
         

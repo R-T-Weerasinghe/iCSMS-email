@@ -147,6 +147,7 @@ async def receive_notification_channel_data(noti_channel_data: PostingNotiSendin
         else:
             notiSendingEmails = []
         
+        
         print(username, dashboardChannelChecked, emailChannelChecked, notiSendingEmails)
         
         if await services.check_user_name_notisending(username):
