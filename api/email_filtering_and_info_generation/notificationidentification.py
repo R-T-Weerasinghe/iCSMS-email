@@ -1,21 +1,13 @@
 import asyncio
 from datetime import datetime
 from api.email_filtering_and_info_generation.email_sending import send_email
-from api.email_filtering_and_info_generation.models import Maindashboard_trig_event
+from api.email_filtering_and_info_generation.models import MailObject, Maindashboard_trig_event
 from api.email_filtering_and_info_generation.services import send_main_dashboard_notification_trigger_event, send_trig_event
 from api.email_filtering_and_info_generation.services import get_triggers_array
 from api.email_filtering_and_info_generation.configurations.database import collection_notificationSendingChannels
+from api.v2.dependencies import configurations
 new_email_notification_info_array=[]
-
-
-
-# this will later taken by the DB
-# triggers_array=[{"trigger_id":1,"user_name":1,"accs_to_check_ss":["raninduharischandra12@gmail.com","ranindu2@outlook.com"], 
-                # "accs_to_check_criticality":["raninduharischandra12@gmail.com"], "ss_lower_bound":-0.5, "ss_upper_bound":None},
-                # {"trigger_id":2,"user_name":2,"accs_to_check_ss":["raninduharischandra12@gmail.com","ranindu2@outlook.com"], 
-                #  "accs_to_check_criticality":["raninduharischandra12@gmail.com"], "ss_lower_bound":-0.8, "ss_upper_bound":0.7}]
-
-
+action_link = configurations.webapp_url + "/email/dashboard"
 
 async def identify_criticality_notifcations(new_email_msg_array):
     
@@ -62,11 +54,16 @@ async def identify_criticality_notifcations(new_email_msg_array):
                                 sender: {new_email_msg["sender"]}\n
                                 subject of email: {new_email_msg["subject"]}\n\n
                                 {new_email_msg['body']}"""
+                                
+                                mail_obj = MailObject(
+                                    to=noti_sending_emails,
+                                    subject=subject,
+                                    template_name="email_noti_template.html",
+                                    context={"message": message, "action_link": action_link}
+                                )
         
                                 
-                                for noti_sending_email in noti_sending_emails:
-                                        
-                                    await send_email(1, noti_sending_email, subject, message)                          
+                                await send_email(mail_obj)                          
             
                         
                         is_dashboard_notifications = notific_channel.get("is_dashboard_notifications")

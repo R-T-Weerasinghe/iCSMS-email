@@ -107,6 +107,12 @@ class Maindashboard_trig_event(BaseModel):
     title:str
     description:str
     
+class MailObject(BaseModel):
+    to: list[str]
+    subject: str
+    context: dict  # a dictionary containing placeholders and their values to replace in html template 
+    template: str  # html template file name (without .html part)
+    
 
 
 # class Trigger_event(BaseModel):

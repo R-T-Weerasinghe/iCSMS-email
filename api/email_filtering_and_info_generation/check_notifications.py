@@ -4,12 +4,14 @@ import time
 
 from api.email_filtering_and_info_generation.configurations.database import collection_readingEmailAccounts, collection_inquiries,collection_issues, collection_notificationSendingChannels, collection_configurations
 from api.email_filtering_and_info_generation.email_sending import send_email
-from api.email_filtering_and_info_generation.models import Maindashboard_trig_event
+from api.email_filtering_and_info_generation.models import MailObject, Maindashboard_trig_event
 from api.email_filtering_and_info_generation.services import get_overall_sentiment_value, get_overdue_inquiries, get_overdue_issues, get_triggers_array, send_main_dashboard_notification_trigger_event, send_overdue_trigger_event, send_trig_event
+from api.v2.dependencies import configurations
 
 
 interval = 60
 next_time = time.time() + interval
+action_link = configurations.webapp_url + "/email/dashboard"
 
 
 def get_seconds_until(target_hour, target_minute=0):
@@ -167,10 +169,15 @@ async def check_sentiment_threshold_notification_condition():
                                     
                                     if ss_trig_type == "lower" or ss_trig_type == "upper":
                                         
-                                        for noti_sending_email in noti_sending_emails:
-                                                
-                                            await send_email(0, noti_sending_email, subject, message)  
-                                            print("Email was just sent")
+                                        mail_obj = MailObject(
+                                            to=noti_sending_emails,
+                                            subject=subject,
+                                            template_name="email_noti_template.html",
+                                            context={"message": message, "action_link": action_link}
+                                        )
+                
+                                        
+                                        await send_email(mail_obj)  
                                                                    
                     
                                 
@@ -299,10 +306,16 @@ async def check_sentiment_threshold_notification_condition():
                                 
                                 if ss_trig_type == "lower" or ss_trig_type == "upper":
                                     
-                                    for noti_sending_email in noti_sending_emails:
-                                            
-                                        await send_email(0, noti_sending_email, subject, message)    
-                                        print("Email was just sent")
+                                        mail_obj = MailObject(
+                                            to=noti_sending_emails,
+                                            subject=subject,
+                                            template_name="email_noti_template.html",
+                                            context={"message": message, "action_link": action_link}
+                                        )
+                
+                                        
+                                        await send_email(mail_obj)  
+                                        print("emails sent")
                                                             
                 
                             
@@ -406,9 +419,16 @@ async def check_overdue_issues():
                                 {new_overdue_issue["issue_summary"]}"""
         
                                 
-                                for noti_sending_email in noti_sending_emails:
-                                    await send_email(0, noti_sending_email, subject, message) 
-                                    print("Email was just sent")
+                                mail_obj = MailObject(
+                                    to=noti_sending_emails,
+                                    subject=subject,
+                                    template_name="email_noti_template.html",
+                                    context={"message": message, "action_link": action_link}
+                                )
+        
+                                
+                                await send_email(mail_obj)  
+                                print("emails sent")
                                                              
             
                         

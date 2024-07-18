@@ -17,6 +17,18 @@ import os
 import time
 import requests
 
+import logging
+import os
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import formataddr
+from smtplib import SMTP_SSL
+
+from jinja2 import Environment, FileSystemLoader
+
+from api.v2.dependencies import configurations as Configurations
+from api.email_filtering_and_info_generation.models import MailObject 
+
 
 state_store = {}
 
@@ -123,47 +135,80 @@ async def login_async(id: int, email_acc_address:str):
 
 
 
-async def send_email(id: int, recepient: str, subject: str, email_body: str, ):
+# async def send_email(id: int, recepient: str, subject: str, email_body: str, ):
     
-    token_path = f'api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{id}/gmail_token.json'
+#     token_path = f'api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{id}/gmail_token.json'
     
-    if (os.path.exists(token_path)):
-        refresh_token(token_path)
+#     if (os.path.exists(token_path)):
+#         refresh_token(token_path)
     
-    if not is_token_valid(token_path):
+#     if not is_token_valid(token_path):
         
-        await login_async(id, "raninduharischandra12@gmail.com")
+#         await login_async(id, "raninduharischandra12@gmail.com")
         
     
-    while(not os.path.exists(token_path)):
-        print("inside waiting loop")
-        time.sleep(5)
+#     while(not os.path.exists(token_path)):
+#         print("inside waiting loop")
+#         time.sleep(5)
     
-    print("outside of waiting loop")
-    creds = None
+#     print("outside of waiting loop")
+#     creds = None
 
     
-    SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.send',
-    'https://www.googleapis.com/auth/gmail.compose',
-    'https://www.googleapis.com/auth/gmail.modify'
-    ]
+#     SCOPES = [
+#     'https://www.googleapis.com/auth/gmail.readonly',
+#     'https://www.googleapis.com/auth/gmail.send',
+#     'https://www.googleapis.com/auth/gmail.compose',
+#     'https://www.googleapis.com/auth/gmail.modify'
+#     ]
     
     
     
-    creds = Credentials.from_authorized_user_file(f'api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{id}/gmail_token.json', SCOPES)
+#     creds = Credentials.from_authorized_user_file(f'api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{id}/gmail_token.json', SCOPES)
 
 
-    # Connect to the Gmail API 
-    service = build('gmail', 'v1', credentials=creds) 
-    message = MIMEText(email_body)
-    message['to'] = recepient
-    message['from'] = 'raninduharischandra12@gmail.com'
-    message['subject'] = subject
-    message_body = {
-    'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()
-    }
-    message = service.users().messages().send(userId='me', body=message_body).execute()
-    print('Message Id: %s' % message['id'])
+#     # Connect to the Gmail API 
+#     service = build('gmail', 'v1', credentials=creds) 
+#     message = MIMEText(email_body)
+#     message['to'] = recepient
+#     message['from'] = 'raninduharischandra12@gmail.com'
+#     message['subject'] = subject
+#     message_body = {
+#     'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()
+#     }
+#     message = service.users().messages().send(userId='me', body=message_body).execute()
+#     print('Message Id: %s' % message['id'])
 
+
+
+
+action_link = Configurations.webapp_url + "/email/dashboard"
+
+async def send_email(mail_obj: MailObject):
+    try:
+        message = MIMEMultipart()
+        message["From"] = formataddr(("SentiView", Configurations.mail_username))
+        message["To"] = ", ".join(mail_obj.to)
+        message["Subject"] = mail_obj.subject
+        
+        current_file_dir = os.path.dirname(__file__)
+        template_dir = os.path.join(current_file_dir, 'templates')
+        
+
+        env = Environment(loader=FileSystemLoader(template_dir))
+        template = env.get_template(mail_obj.template)
+
+        # Render the template with the provided context
+        html_content = template.render(mail_obj.context)
+
+        # Attach the HTML content
+        message.attach(MIMEText(html_content, "html"))
+
+        with SMTP_SSL(Configurations.mail_host, Configurations.mail_port) as server:
+            server.login(Configurations.mail_username, Configurations.mail_password)
+            logging.info("Sending the email.")
+            server.send_message(message)
+            server.quit()
+            logging.info("Email sent successfully.")
+    except Exception as e:
+        logging.error(f"Failed to send email: {e}")
