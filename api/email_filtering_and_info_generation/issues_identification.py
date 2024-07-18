@@ -61,7 +61,7 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
         if not issue_document and not inquiry_document:
             
             # checking whether the first email of the thread came from a client
-            if new_email_msg['sender'] not in reading_email_accounts:
+            if new_email_msg['type'] == "client":
             
                 issue_inquiry_identification_script = f""" '{new_email_msg["body"]}' 
                                                 If this customer care email is about a customer complaint or reporting an issue (exclude inquiries and suggestions), output 'issue'. 
@@ -132,8 +132,8 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                                 effectiveness=None, efficiency=None, 
                                 isOverdue=False)
 
-                    
-                    await send_inquiry(new_inquiry)            
+                    print("sent new inquiry")
+                    #await send_inquiry(new_inquiry)            
                 
                 # if the email of the new thread is an issue
                 if "issue" == response.text:
@@ -193,7 +193,8 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                     
                     
                     gemini_chat = None
-                    await send_issue(new_issue)
+                    print("sent new issue")
+                    #await send_issue(new_issue)
                 
         else:
             
@@ -207,14 +208,22 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 
                 
                 # identifying sender type
-                if new_email_msg['sender'] not in reading_email_accounts:
-                    sender_type = "client"
-                else:
-                    sender_type = "company"
+                sender_type = new_email_msg["type"]
                     
                 current_issue_doc = issue_document
                 
-                summarize_script = f"""{new_email_msg['body']} summarize the above email body to a minimum word count as possible. output only the summary. don't output anything else. """
+                if new_email_msg["type"] == "client":
+                        
+                        summarize_script = f"""{new_email_msg['body']} Summarize the above email body to as few words as possible. 
+                        Output only the summary. Do not output anything else.
+                        If the email body is too short (8 words or fewer), do not summarize it. Output the original text instead.
+                        The email is from a customer to a company's customer care team, and is part of a larger conversation. 
+                        Write the summary in a tone that makes the reader feel like the client is explaining it to them."""
+                else:
+                        summarize_script = f"""{new_email_msg['body']} Summarize the above email body to as few words as possible. Output only the summary. Do not output anything else.
+                        If the email body is very short (8 words or fewer), do not summarize. Output the original text instead.
+                        The email is from the customer care division of a company to a customer, replying to a previous issue email from the customer. 
+                        This email is part of a larger conversation. Write the summary in a tone that makes the client feel like the company is explaining it to them.""" 
                 
                 summarize_response = model.generate_content(summarize_script)
                 summarize_response.resolve()  
@@ -234,14 +243,17 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 new_issue_convo_summary_arr = current_issue_convo_summary_arr
                 
                 issue_convo_summary_text_form = ""
+                only_sentiment_issue_convo_summary_text_form = ""
                 
                 for dict in new_issue_convo_summary_arr:
-                    issue_convo_summary_text_form = issue_convo_summary_text_form + "\n" + f"""{dict['sender']}:{dict['time']}:\n{dict['message']} """
-                
-                
+                    issue_convo_summary_text_form = issue_convo_summary_text_form + "\n" + f"""sender_type:{dict['sender_type']}, sender email: {dict['sender']}, time: {dict['time']}:\n email: {dict['message']}"""
+
+                    if dict["sender_type"] == "client":
+                        only_sentiment_issue_convo_summary_text_form = only_sentiment_issue_convo_summary_text_form + "\n" + f""" email: {dict['message']}"""
+
                 
                 new_ongoing_status = ""
-                if new_email_msg['sender'] in reading_email_accounts: 
+                if new_email_msg["type"] == "company": 
                     new_ongoing_status = "waiting"
                 else:
                     new_ongoing_status = "update"
@@ -252,13 +264,16 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 gemini_chat = model.start_chat()
                 
                 issue_resolution_checking_script = f""" '{issue_convo_summary_text_form}'
-                                                        This is a summary of a customer care email thread regarding a complaint or issue. Determine if the customer care employee resolved the issue:
+                                                            This is a conversation between a customer care employee and a client. Read it and determine whether the employee has resolved the customer's issue.
 
-                                                        If the employee:
-                                                        1. Provided a solution, or
-                                                        2. Escalated the complaint to the technical team or some other team, and informing the customers about this,
+                                                            Consider the issue resolved if the employee:
+                                                            1. Provided a solution, or
+                                                            2. Escalated the complaint to the technical team or another appropriate team, and informed the customer about this.
 
-                                                        Output 'yes'. Otherwise, output 'no'. Do not output anything other than 'yes' or 'no'."""
+                                                            Output 'yes' if the issue is resolved. Otherwise, output 'no'. Do not output anything other than 'yes' or 'no'.
+
+                                                            (Be very strict when determining whether the issue has been resolved. Just asking the customer for more information about the issue is not enough to consider the issue resolved.)
+                                                            """
                 
                 response1 = gemini_chat.send_message(issue_resolution_checking_script)
                 
@@ -291,25 +306,36 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                     response3 = gemini_chat.send_message(efficiency_of_issue_checking_script)
                     new_efficiency = response3.text
                     
-                    await update_issue_status(new_email_msg['thread_id'], new_issue_convo_summary_arr, new_email_msg['time'],"closed", None, sentiment_score, new_email_msg['time'],new_effectiveness,new_efficiency)
+                    print("update closed issue status")
+                    #await update_issue_status(new_email_msg['thread_id'], new_issue_convo_summary_arr, new_email_msg['time'],"closed", None, sentiment_score, new_email_msg['time'],new_effectiveness,new_efficiency)
                 else:
-                    
-                    await update_issue_status(new_email_msg['thread_id'], new_issue_convo_summary_arr, new_email_msg['time'],"ongoing", new_ongoing_status, sentiment_score, None,None,None)
+                    print("update onogin issue status")
+                    #await update_issue_status(new_email_msg['thread_id'], new_issue_convo_summary_arr, new_email_msg['time'],"ongoing", new_ongoing_status, sentiment_score, None,None,None)
 
                 gemini_chat = None
             # ---------------------- iquiry--------------------------------------------------------------------------------
             if inquiry_document: 
                 new_email_msg['isInquiry'] = True
                 
-                if new_email_msg['sender'] not in reading_email_accounts:
-                    sender_type = "client"
-                else:
-                    sender_type = "company"
+                sender_type = new_email_msg["type"]
                 
                 convo_summary_doc = inquiry_document
                 
-                summarize_script = f"""{new_email_msg['body']} summarize the above email body to a minimum word count as possible. output only the summary. don't output anything else. """
-                
+                if new_email_msg["type"] == "client":
+                        summarize_script = f"""{new_email_msg['body']} 
+                        Summarize the above email body to as few words as possible. Output only the summary. Do not output anything else.
+                        If the email body is 8 words or fewer, do not summarize. 
+                        Output the original text instead.
+                        The email is from a customer to a company's customer care email account and is part of a larger conversation. 
+                        Write the summary in a tone that makes the reader feel like the client is explaining it to them."""
+                else:
+                        summarize_script = f"""{new_email_msg['body']} 
+                        Summarize the above email body to as few words as possible. Output only the summary. Do not output anything else.
+                        If the email body is 8 words or fewer, do not summarize. Output the original text instead.
+                        The email is from the customer care division of a company to a customer, replying to a previous inquiry from the customer. 
+                        This email is part of a larger conversation. 
+                        Write the summary in a tone that makes the client feel like the company is explaining it to them."""
+                                            
                 summarize_response = model.generate_content(summarize_script)
                 summarize_response.resolve()
                 inquiry_summary = summarize_response.text
@@ -328,28 +354,35 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                 new_inquiry_convo_summary_arr = current_inquiry_convo_summary_arr
                 
                 inquiry_convo_summary_text_form = ""
-                
+                only_sentiment_inquiry_convo_summary_text_form = ""
+            
                 for dict in new_inquiry_convo_summary_arr:
-                    inquiry_convo_summary_text_form = inquiry_convo_summary_text_form + "\n" + f"""{dict['sender']}:{dict['time']}:\n{dict['message']} """
+                    inquiry_convo_summary_text_form = inquiry_convo_summary_text_form + "\n" + f"""sender_type:{dict['sender_type']}, sender email: {dict['sender']}, time: {dict['time']}:\n email: {dict['message']}"""
+
+                    if dict["sender_type"] == "client":
+                        only_sentiment_inquiry_convo_summary_text_form = only_sentiment_inquiry_convo_summary_text_form + "\n" + f""" email: {dict['message']}"""
                 
                 new_ongoing_status = ""
-                if new_email_msg['sender'] in reading_email_accounts: 
+                if new_email_msg["type"] == "company": 
                     new_ongoing_status = "waiting"
                 else:
                     new_ongoing_status = "update"
                 
-                sentiment_score = round(scale_score(analyze_sentiment(inquiry_convo_summary_text_form)), 2)
+                sentiment_score = round(scale_score(analyze_sentiment(only_sentiment_inquiry_convo_summary_text_form)), 2)
                     
                 # Initialize the model for the chat
                 gemini_chat = model.start_chat()
                 
                 inquiry_resolution_checking_script = f""" '{inquiry_convo_summary_text_form}'
-                                                        This is a summary of a customer care email thread regarding an inquiry. Determine if the customer care employee has satisfied the inquiry:
+                                                            This is a conversation between a customer care employee and a client about a client inquiry, read it and determine whether the employee has resolved the customer inquiry.
 
-                                                        If the employee:
-                                                        has provided the relevant needed information to satisfy the customers inquiry.
+                                                            The inquiry should considered to be resolved if the employee:
+                                                            has provided the relevant needed information to satisfy each and every customer inquiry.
+                                                            (the company must've provided an adequate resolution to the cutomer for the inquiry to end.)
 
-                                                        Output 'yes'. Otherwise, output 'no'. Do not output anything other than 'yes' or 'no'."""
+                                                            Output 'yes' if the inquiry is resolved. Otherwise, output 'no'. Do not output anything other than 'yes' or 'no'.
+
+                                                            (Be very strict when determining whether the inquiry has been resolved. Just asking the customer for more information about the inquiry is not enough to consider the issue resolved.)"""
                 
                 response1 = gemini_chat.send_message(inquiry_resolution_checking_script)
                 time.sleep(3)
@@ -381,11 +414,12 @@ async def identify_issues_inquiries_and_checking_status(new_email_msg_array):
                     response3 = gemini_chat.send_message(efficiency_of_inquiry_checking_script)
                     new_efficiency = response3.text
                     
-                    await update_inquiry_status(new_email_msg['thread_id'], new_inquiry_convo_summary_arr, new_email_msg['time'], "closed", None, sentiment_score,new_email_msg['time'],new_effectiveness,new_efficiency)
+                    print("update closed inquiry status")
+                    #await update_inquiry_status(new_email_msg['thread_id'], new_inquiry_convo_summary_arr, new_email_msg['time'], "closed", None, sentiment_score,new_email_msg['time'],new_effectiveness,new_efficiency)
                 
                 else:
-                    
-                    await update_inquiry_status(new_email_msg['thread_id'], new_inquiry_convo_summary_arr, new_email_msg['time'],"ongoing", new_ongoing_status, sentiment_score, None, None,None)
+                    print("update ongoing inquiry status")
+                    #await update_inquiry_status(new_email_msg['thread_id'], new_inquiry_convo_summary_arr, new_email_msg['time'],"ongoing", new_ongoing_status, sentiment_score, None, None,None)
                 
                 gemini_chat = None   
             

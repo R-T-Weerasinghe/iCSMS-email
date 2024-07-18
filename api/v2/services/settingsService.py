@@ -4,7 +4,8 @@ from fastapi import HTTPException
 from api.email_filtering_and_info_generation.models import Reading_email_acc
 from api.v2.models.settingsModel import  EditingEmailData, EmailAcc, GetNewIntergratingEmailID, NotiSendingChannelsRecord, PutNotiSendingChannelsRecordDB, SSShiftData
 from api.email_filtering_and_info_generation.services import send_reading_email_account, get_reading_emails_array
-from api.v2.dependencies.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
+#from api.v2.dependencies.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
+from api.v2.dependencies.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts
 from api.email_filtering_and_info_generation.services import get_reading_emails_array
 from google.auth.exceptions import DefaultCredentialsError
 from google.auth.exceptions import OAuthError
@@ -17,18 +18,17 @@ from api.settings.models import Trigger
 state_store = {}
 
 def check_client_secret_validation_init_oauth_flow(client_secrets_file: str, redirect_uri: str):
+    """
+    check whether a new flow can be made by the newly entered client secret
+    """
     try:
         flow = Flow.from_client_secrets_file(
             client_secrets_file,
             scopes=[
                 'https://www.googleapis.com/auth/gmail.readonly'
-                #'https://www.googleapis.com/auth/gmail.modify',
-                 #'https://www.googleapis.com/auth/gmail.settings.basic'
             ],
             redirect_uri=redirect_uri
-        )
-        
-       
+        )      
 
         return "success"
     except DefaultCredentialsError as e:
@@ -48,9 +48,12 @@ def check_client_secret_validation_init_oauth_flow(client_secrets_file: str, red
 
 
 def check_client_secret_validation(new_email_client_secret_content: str, id: int):
+    """
+    check the validity of a newly entered client secret
+    """
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
-    # if the following folder already doesn;t exist the following code will create it.
+    # if the following folder already doesn't exist the following code will create it.
     new_folder_path= f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmailTemp"
     os.makedirs(new_folder_path, exist_ok=True)
 
@@ -58,9 +61,7 @@ def check_client_secret_validation(new_email_client_secret_content: str, id: int
     
     with open(client_secrets_file, "w") as file:
         file.write(new_email_client_secret_content)
-    
-    # MIGHT OCCU A BUG HERE BECAUSE THE REDIRECT ID FOR EACH EMAIL MIGHT BE DIFFERENT. Comment out the hardcoded id.
-    
+        
     redirect_uri = f'http://127.0.0.1:8000/email/info_and_retrieval/callback?id={id}'
     
     output = check_client_secret_validation_init_oauth_flow(client_secrets_file, redirect_uri)
@@ -70,10 +71,13 @@ def check_client_secret_validation(new_email_client_secret_content: str, id: int
     return output
 
 def check_aready_existing_reading_email(client_secret: str):
+    
+    """
+    Check whether a newly enetered email account client secret is already existing in the system
+    """
     id_docs = collection_readingEmailAccounts.find({}, {'id': 1})
 
     for doc in id_docs:
-        print(doc['id'])
         file_path = f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{doc['id']}/client_secret.json"
         
 
@@ -89,31 +93,17 @@ def check_aready_existing_reading_email(client_secret: str):
             
     return False
 
-def check_aready_existing_reading_email(client_secret: str):
-    id_docs = collection_readingEmailAccounts.find({}, {'id': 1})
 
-    for doc in id_docs:
-        print(doc['id'])
-        file_path = f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{doc['id']}/client_secret.json"
-        
-
-        # Open and read the JSON file
-        with open(file_path, 'r') as file:
-            file_client_secret = file.read().strip()
-        
-        
-        
-        # Check if the client_secret from the file is equal to the passed client_secret
-        if file_client_secret == client_secret:
-            return True
-            
-    return False
 
 def check_aready_existing_reading_email_in_edit(client_secret: str, id:int):
+    
+    """
+    Check whether the newly edited client secret of a speciif account, 
+    is not available as a client secret of another existing email account
+    """
     id_docs = collection_readingEmailAccounts.find({}, {'id': 1})
 
     for doc in id_docs:
-        print(doc['id'])
         if not id == doc['id']:
             file_path = f"api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{doc['id']}/client_secret.json"
             
@@ -135,8 +125,12 @@ def check_aready_existing_reading_email_in_edit(client_secret: str, id:int):
 
 
 async def send_new_trigger(trigger: Trigger):
+    
+    """
+    Send a new trigger to the triggers collection
+    """
     try:
-        # Insert the tig_event dictionary into the MongoDB collection
+        # Insert the trig_event dictionary into the MongoDB collection
         result = collection_trigers.insert_one(trigger.dict())
         
         # Return the ID of the inserted document
@@ -148,6 +142,11 @@ async def send_new_trigger(trigger: Trigger):
 # update a trigger for a sentiment shift triggers form change     
 
 async def update_triggers_ss(user_name: int, accs_to_check_ss: list[str], lowerSS_notify: bool, ss_lower_bound: float, upperSS_notify: bool, ss_upper_bound: float, is_checking_ss:bool):
+    
+    """
+    update the sentiment shift checking info in an already existing trigger in the triggers collection
+    
+    """
     try:
         
         result = collection_trigers.update_one(
@@ -170,6 +169,12 @@ async def update_triggers_ss(user_name: int, accs_to_check_ss: list[str], lowerS
 
 # update a trigger for a overdie issue triggers form change     
 async def update_triggers_overdue_issues(user_name, accs_to_check_overdue_issues: list[str]):
+    
+    """
+    update the overdue issues checking email accounts info in an already existing trigger in the triggers collection
+    
+    """
+    
     try:
         result = collection_trigers.update_one(
                 {"user_name": user_name},
@@ -184,6 +189,11 @@ async def update_triggers_overdue_issues(user_name, accs_to_check_overdue_issues
     
 # update a trigger for a criticality triggers form change     
 async def update_triggers_criticality(user_name, accs_to_check_critical_emails: list[str]):
+    
+    """
+    update the critical emails checking email accounts info in an already existing trigger in the triggers collection
+    
+    """
     try:
         result = collection_trigers.update_one(
                 {"user_name": user_name},
@@ -199,15 +209,14 @@ async def update_triggers_criticality(user_name, accs_to_check_critical_emails: 
     
 # post a new notisendingchannels record into NotisendingEmails collection
 async def send_notificationchannels_record(new_noti_sending_email_rec: PutNotiSendingChannelsRecordDB):
+    
+    
+    """
+    insert the notification channels doc about a new user to the NotificationSedningChannels collection
+    
+    """
     try:
-            print("in here", new_noti_sending_email_rec.noti_sending_emails)
             result = collection_notificationSendingChannels.insert_one(new_noti_sending_email_rec.dict())
-            print("after result")
-            # if result.modified_count == 1:
-            #         return {"message": "Notification sending channels updated successfully"}
-            # else:
-            #         print("insert failed")
-            #         raise HTTPException(status_code=404, detail="Trigger not found") 
           
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 
@@ -217,6 +226,11 @@ async def send_notificationchannels_record(new_noti_sending_email_rec: PutNotiSe
 # update a notiSendingEmails collection after a noti channel form change     
 
 async def update_noti_sending_emails(user_name: str, is_dashboard_notifications: bool, is_email_notifications: bool, new_noti_sending_email: list[str]):
+    
+    """
+    update an already existing doc in the NotificationSedningChannels collection
+
+    """
     try:
         
         user = collection_notificationSendingChannels.find_one({"user_name": user_name})
@@ -232,20 +246,18 @@ async def update_noti_sending_emails(user_name: str, is_dashboard_notifications:
                     "is_email_notifications":is_email_notifications,
                     "noti_sending_emails": combined_emails}}
                 )
-                
-                if result.modified_count == 1:
-                    return {"message": "Crticality Trigger updated successfully"}
-                else:
-                    raise HTTPException(status_code=404, detail="Trigger not found")                
-          
-            
-        
+                              
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 
     
 
 # get the current highest trigger_id
 async def get_highest_trigger_id():
+    
+    """
+    get the current highest trigger id
+    
+    """
     try:
         # Find the document with the highest trigger_id
         highest_trigger_id_document = collection_trigers.find_one(sort=[("trigger_id", -1)])
@@ -265,6 +277,11 @@ async def get_highest_trigger_id():
 # triggers collection user_name existence checker
 
 async def check_user_name(user_name: str):
+    
+    """
+    Check whether a trigger doc belonging to a sepcific user exist in the trigers collection
+    
+    """
     try:
         # Check if the user_id is present in the collection
         user_document = collection_trigers.find_one({"user_name": user_name})
@@ -278,6 +295,11 @@ async def check_user_name(user_name: str):
     
 # NotisendingEmails collection user_id existence checker
 async def check_user_name_notisending(user_name: str):
+    
+    """
+    Check whether a doc belonging to a sepcific user exist in the NotificationSendingChannels collection
+    
+    """
     try:
         # Check if the user_id is present in the collection
         user_document = collection_notificationSendingChannels.find_one({"user_name": user_name})
@@ -292,7 +314,12 @@ async def check_user_name_notisending(user_name: str):
 
 # to get the SS checking emails of a specific user from the Collection
 async def get_data_of_ss_threshold(user_name: str):
-    # Query MongoDB collection to find documents with the specified user_id
+    
+    """
+    get sentiment shift trigger data for a specific user
+    
+    """
+    # Query MongoDB collection to find documents with the specified user_name
     result = collection_trigers.find_one({"user_name": user_name})
     if result:
         accs_to_check_ss_string_array = result.get("accs_to_check_ss", [])
@@ -303,9 +330,7 @@ async def get_data_of_ss_threshold(user_name: str):
         is_checking_ss = result.get("is_checking_ss")
         is_lower_checking = result.get("is_lower_checking")
         is_upper_checking = result.get("is_upper_checking")
-        
-        print("-------------------", result.get("ss_upper_bound"))
-        
+                
         data: SSShiftData = SSShiftData(accs_to_check_ss = accs_to_check_ss, 
                            ss_lower_bound = ss_lower_bound, 
                            ss_upper_bound = ss_upper_bound,
@@ -327,7 +352,12 @@ async def get_data_of_ss_threshold(user_name: str):
     
 # to get the criticality checking emails of a specific user from the Collection
 async def get_accs_to_check_criticality(user_name: str):
-    # Query MongoDB collection to find documents with the specified user_id
+    
+    """
+    get criticality checking trigger data for a specific user
+    
+    """
+    # Query MongoDB collection to find documents with the specified user_name
     result = collection_trigers.find_one({"user_name": user_name})
     if result:
         accs_to_check_overdue_emails = result.get("accs_to_check_critical_emails", [])
@@ -337,7 +367,12 @@ async def get_accs_to_check_criticality(user_name: str):
 
 # to get the overdue issues checking emails of a specific user from the Collection
 async def get_accs_to_check_overdue_issues(user_name: str):
-    # Query MongoDB collection to find documents with the specified user_id
+    
+    """
+    get overdue issues checking email account trigger data for a specific user
+    
+    """
+    # Query MongoDB collection to find documents with the specified user_name
     result = collection_trigers.find_one({"user_name": user_name})
     if result:
         accs_to_check_overdue_emails = result.get("accs_to_check_overdue_issues", [])
@@ -346,32 +381,50 @@ async def get_accs_to_check_overdue_issues(user_name: str):
         return []
     
 async def get_new_intergrating_email_id(): 
+    
+    """
+    calculate the new id of the newly integrated email
+    
+    """
         
     reading_email_acc_array = await get_reading_emails_array()
     
     
     # get the id of the new email account
     if reading_email_acc_array:
-        # Find the maximum id value of the reading_email_acc_array
-        max_id = max(int(d["id"]) for d in reading_email_acc_array) # type: ignore
+        # Extract and sort the list of existing ids
+        existing_ids = sorted(int(d["id"]) for d in reading_email_acc_array)  # type: ignore
+        
+        # Find the smallest missing id in the sorted list
+        new_id = None
+        for i in range(1, max(existing_ids) + 1):
+            if i not in existing_ids:
+                new_id = i
+                break
 
-        # Increment the id value for the new dictionary
-        new_id = str(max_id + 1)
+        # If no missing id is found, assign the next id
+        if new_id is None:
+            new_id = max(existing_ids) + 1
+
+        new_id = str(new_id)
     else:
-        new_id=1
+        new_id = "1"
     
     return GetNewIntergratingEmailID(emailID=new_id)
        
 async def integrateEmail(new_email_address, new_email_nickname, new_email_client_secret_content):
 
+    """
+    Integrate a new email account to the system
     
+    """
     reading_email_acc_array = await get_reading_emails_array()
     
     
     # get the id of the new email account
     if reading_email_acc_array:
         # Find the maximum id value of the reading_email_acc_array
-        max_id = max(int(d["id"]) for d in reading_email_acc_array) # type: ignore
+        max_id = max(int(d["id"]) for d in reading_email_acc_array) 
 
         # Increment the id value for the new dictionary
         new_id = str(max_id + 1)
@@ -399,7 +452,11 @@ async def integrateEmail(new_email_address, new_email_nickname, new_email_client
 
  
 async def updateEmail(Old_email_address, new_email_address, new_email_nickname, new_email_client_secret_content):
-
+   
+    """
+    Update the properties of an already existing email account
+    
+    """
     
     existing_doc = collection_readingEmailAccounts.find_one({"address": Old_email_address})
     if not existing_doc:
@@ -427,6 +484,11 @@ async def updateEmail(Old_email_address, new_email_address, new_email_nickname, 
 
 async def get_editing_email_data(selectedEmail: str):
     
+    """
+    get the data about an already exsting reading email account
+    
+    """
+    
     existing_doc = collection_readingEmailAccounts.find_one({"address": selectedEmail})
     
     if not existing_doc:
@@ -450,58 +512,65 @@ async def get_editing_email_data(selectedEmail: str):
     
     
  
-    
-    
-
-# -----------------------------------------------------non-API functions----------------------------------------------------------------
-
-
+        
+#------ helper functions to the above functions---------------------
 
 async def updateTriggersTableSS(username,emailAccsToCheckSS,lowerNotify, lowerSS, upperNotify, upperSS, is_checking_ss):
     
+    """
+    update the sentiment shift data of a specific trigger in the trggers collection
     
+    """
   
     if await check_user_name(username):
-        print("checkuser name becomes true")
+        print("the user name already exixts")
         await update_triggers_ss(username,emailAccsToCheckSS,lowerNotify,lowerSS,upperNotify,upperSS, is_checking_ss)
     else:    
         
         cuurentHighestTrigID = await get_highest_trigger_id()
         newtrigID = cuurentHighestTrigID+1
         SSNotify = is_checking_ss
-        new_trigger = Trigger(trigger_id = newtrigID, user_name=username, is_checking_ss=is_checking_ss, accs_to_check_ss= emailAccsToCheckSS, accs_to_check_overdue_issues = [], accs_to_check_critical_emails = [] , ss_lower_bound= lowerSS, ss_upper_bound=upperSS,  is_lower_checking = lowerNotify,  is_upper_checking = upperNotify)
+        new_trigger = Trigger(trigger_id = newtrigID, user_name=username, is_checking_ss=SSNotify, accs_to_check_ss= emailAccsToCheckSS, accs_to_check_overdue_issues = [], accs_to_check_critical_emails = [] , ss_lower_bound= lowerSS, ss_upper_bound=upperSS,  is_lower_checking = lowerNotify,  is_upper_checking = upperNotify)
         
         await send_new_trigger(new_trigger)
 
 
 
 async def updateTriggersTableOverdueIssues(username, emailAccsToCheckOverdueIssues: list[str]):
-    
-     if await check_user_name(username):
-         await update_triggers_overdue_issues(username,emailAccsToCheckOverdueIssues)
-     else:
-         cuurentHighestTrigID = await get_highest_trigger_id()
-         newtrigID = cuurentHighestTrigID+1
-         
-         new_trigger = Trigger(trigger_id = newtrigID, user_name=username, accs_to_check_ss= [], accs_to_check_overdue_issues= emailAccsToCheckOverdueIssues, accs_to_check_critical_emails=[], ss_lower_bound= None, ss_upper_bound=None,
-                               is_checking_ss = False, is_lower_checking = False, is_upper_checking = False)
-         
-         await send_new_trigger(new_trigger)
+
+    """
+     update the overdue issues checking emails of a specific trigger in the trggers collection
+
+    """
+    if await check_user_name(username):
+        await update_triggers_overdue_issues(username,emailAccsToCheckOverdueIssues)
+    else:
+        cuurentHighestTrigID = await get_highest_trigger_id()
+        newtrigID = cuurentHighestTrigID+1
+        
+        new_trigger = Trigger(trigger_id = newtrigID, user_name=username, accs_to_check_ss= [], accs_to_check_overdue_issues= emailAccsToCheckOverdueIssues, accs_to_check_critical_emails=[], ss_lower_bound= None, ss_upper_bound=None,
+                            is_checking_ss = False, is_lower_checking = False, is_upper_checking = False)
+        
+        await send_new_trigger(new_trigger)
          
         
 
 async def updateTriggersTableCriticality(username, emailAccsToCheckCriticality):
     
-     if await check_user_name(username):
-         await update_triggers_criticality(username,emailAccsToCheckCriticality)
-     else:
-         cuurentHighestTrigID = await get_highest_trigger_id()
-         newtrigID = cuurentHighestTrigID+1
-         
-         new_trigger = Trigger(trigger_id = newtrigID, user_name=username, accs_to_check_ss= [], accs_to_check_overdue_issues=[], accs_to_check_critical_emails = emailAccsToCheckCriticality, 
-                               ss_lower_bound= None, ss_upper_bound=None,is_checking_ss = False, is_lower_checking = False, is_upper_checking = False)
-         
-         await send_new_trigger(new_trigger)
+    """
+     update the critical emails checking emails of a specific trigger in the trggers collection
+
+    """  
+    if await check_user_name(username):
+        await update_triggers_criticality(username,emailAccsToCheckCriticality)
+    else:
+        cuurentHighestTrigID = await get_highest_trigger_id()
+        newtrigID = cuurentHighestTrigID+1
+        
+        new_trigger = Trigger(trigger_id = newtrigID, user_name=username, accs_to_check_ss= [], accs_to_check_overdue_issues=[], accs_to_check_critical_emails = emailAccsToCheckCriticality, 
+                            ss_lower_bound= None, ss_upper_bound=None,is_checking_ss = False, is_lower_checking = False, is_upper_checking = False)
+        
+        await send_new_trigger(new_trigger)
          
           
     
