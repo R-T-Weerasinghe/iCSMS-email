@@ -1,13 +1,4 @@
-# main file that app starts with
-
-# This has to be outside because of the way the app is structured
-# Otherwise the relative imports within api/ and other modules won't work
-# This is because the app is started from the root directory and python path is set to the root directory
-# so all the imports can be called relative to the root directory
 import asyncio
-import threading
-import time
-from pydantic import ValidationError
 import uvicorn  # debugging
 from dotenv import load_dotenv
 
@@ -24,6 +15,8 @@ from api.email_authorization.routes import router as authorization_router
 from api.filtering.routes import router as filtering_router
 from api.settings.routes import router as settings_router
 from api.dashboard.routes import router as dashboard_router
+from api.v2.routers.dashboardRouter import router as dashboard_router_v2
+from api.v2.routers.settingsRouter import router as settings_router_v2
 from api.suggestions_page.routes import router as suggestions_router
 from api.v2.routers.mainRouter import router as v2_router
 
@@ -34,7 +27,7 @@ load_dotenv()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
@@ -49,6 +42,7 @@ app.include_router(authorization_router, prefix=EMAIL_PREFIX)
 app.include_router(dashboard_router,prefix=EMAIL_PREFIX)
 app.include_router(suggestions_router,prefix=EMAIL_PREFIX)
 app.include_router(v2_router, prefix=f"{EMAIL_PREFIX}/v2")
+
 
 
 def retrieving_emails_loop():
@@ -67,34 +61,9 @@ def slide_time_window_loop():
         print(f"An error occurred: {e}")
 
 
-# @app.on_event("startup")
-# async def on_startup():
-
-#     # start the continous loop to extract emails in a new thread
-#     threading.Thread(target=retrieving_emails_loop, args=(), daemon=True).start()
-
-#     # start the continous loop to check notifications in a new thread
-#     threading.Thread(target=check_notifications_loop, args=(), daemon=True).start()
-
-#     # start the continous loop to delete data and slide the time window in a new thread
-#     threading.Thread(target=slide_time_window_loop, args=(), daemon=True).start()
-
-
 @app.get('/', response_class=RedirectResponse, include_in_schema=False)
 async def docs():
     return RedirectResponse(url='/docs')
 
-
-# Exception handler for pydantic validation errors
-# TODO: This is a temporary solution. We should handle the errors in
-#   a better way. Only request validation errors should be handled here.
-# @app.exception_handler(ValidationError)
-# async def validation_exception_handler(request: Request, exc: ValidationError):
-#     return JSONResponse(
-#         status_code=400,
-#         content={"detail": exc.errors()},
-#     )
-
-
-if __name__ == "__main__":  # debugging
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+if __name__ == "__main__":
+    uvicorn.run(app)

@@ -60,7 +60,7 @@ last_email_read_time = None
 async def getEmails(id: int, new_email_msg_array, email_acc_address:str, last_email_read_time): 
     # Variable creds will store the user access token. 
     # If no valid token found, we will create one. 
-    
+    print("email address: ", email_acc_address)
     token_path = f'api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{id}/gmail_token.json'
     
     if (os.path.exists(token_path)):
@@ -184,7 +184,7 @@ async def getEmails(id: int, new_email_msg_array, email_acc_address:str, last_em
             # print('\n') 
             # print('\n') 
             
-            email_msg_dict={"id": metadata.get('Email ID'),"time":metadata.get('Received Time'), "recipient": metadata.get('Recipient'), "sender": metadata.get('Sender'), "subject": subject,
+            email_msg_dict={"id": metadata.get('Email ID'),"time":metadata.get('Received Time'), "recipient": metadata.get('Recipient'), "sender": metadata.get('Sender'), "subject": subject,"type":"",
                             "thread_id": metadata.get('Thread ID'), "body":body, "criticality_category":"", "our_sentiment_score":0, "products":[], "isSuggestion":False, "isIssue":False, "isInquiry":False}
 
             print("email_msg_dict", email_msg_dict)
@@ -275,7 +275,9 @@ async def read_all_new_emails(new_email_msg_array, last_email_read_time):
     
     for email_acc in email_acc_array: 
         
-        await getEmails(email_acc["id"], new_email_msg_array, email_acc["address"], last_email_read_time)
+        if email_acc["address"] == "raninduharischandra12@gmail.com":
+        
+            await getEmails(email_acc["id"], new_email_msg_array, email_acc["address"], last_email_read_time)
         
         
     print("\n")
@@ -306,7 +308,7 @@ async def repeat_every_10mins():
     print("\n")
     print("\n")
     # print("RAW READ NEW EMAIL MESG ARRAY", new_email_msg_array)
-    mask_email_messages(new_email_msg_array)
+    await mask_email_messages(new_email_msg_array)
     print("MASKED EMAIL MESSAGES", new_email_msg_array)
     await format_email_bodies(new_email_msg_array)
     print("\n")
@@ -319,7 +321,6 @@ async def repeat_every_10mins():
     print("\n criticality identified emails")
     print("\n")
     print(new_email_msg_array)
-    await identify_criticality_notifcations()
     # #await identify_notifcations(new_email_msg_array)
     await identify_topics(new_email_msg_array)
     print("\n")
@@ -341,9 +342,9 @@ async def repeat_every_10mins():
     print(new_email_msg_array)
     # print("---------------------------------------finished identifying summaries------------------------")
     # print(new_email_msg_array)
-    await push_new_emails_to_DB(new_email_msg_array)
+    #await push_new_emails_to_DB(new_email_msg_array)
     print("database update successful")
-    summarize_conversations(new_email_msg_array)
+    await summarize_conversations(new_email_msg_array)
     print("conversation summaries identified")
     
     # make this 10 minutes
@@ -357,7 +358,7 @@ async def repeat_every_10mins():
             print("\n")
             print("\n")
             # print("RAW READ NEW EMAIL MESG ARRAY", new_email_msg_array)
-            mask_email_messages(new_email_msg_array)
+            await mask_email_messages(new_email_msg_array)
             print("MASKED EMAIL MESSAGES", new_email_msg_array)
             await format_email_bodies(new_email_msg_array)
             print("\n")
@@ -370,7 +371,6 @@ async def repeat_every_10mins():
             print("\n criticality identified emails")
             print("\n")
             print(new_email_msg_array)
-            await identify_criticality_notifcations()
             # #await identify_notifcations(new_email_msg_array)
             await identify_topics(new_email_msg_array)
             print("\n")
@@ -392,11 +392,11 @@ async def repeat_every_10mins():
             print(new_email_msg_array)
             # print("---------------------------------------finished identifying summaries------------------------")
             # print(new_email_msg_array)
-            await push_new_emails_to_DB(new_email_msg_array)
+            #await push_new_emails_to_DB(new_email_msg_array)
             print("database update successful")
-            summarize_conversations(new_email_msg_array)
+            await summarize_conversations(new_email_msg_array)
             print("conversation summaries identified")
-                    
+                            
         except Exception as e:
             print("Error:", e)
         # Calculate the next execution time

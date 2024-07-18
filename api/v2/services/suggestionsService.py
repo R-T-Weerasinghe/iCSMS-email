@@ -25,13 +25,18 @@ def getSuggestions(
     """
     Get suggestions based on the given parameters.
     """
-    query = build_query(skip, limit, "suggestion", r, s, tags, allTags, status, dateFrom, dateTo, q)
-    suggestions: List[dict] = list(collection_suggestions.find(query).skip(skip).limit(limit))
+    query = build_query(skip, limit, "suggestion", r, s,
+                        tags, allTags, status, dateFrom, dateTo, q)
+    suggestions: List[dict] = list(
+        collection_suggestions.find(query).sort([("date", -1)]).skip(skip).limit(limit))
     try:
-        suggestions_objs: List[SuggestionInDB] = [SuggestionInDB(**suggestion) for suggestion in suggestions]
+        suggestions_objs: List[SuggestionInDB] = [
+            SuggestionInDB(**suggestion) for suggestion in suggestions]
     except ValidationError:
-        raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
-    suggestions_return: List[Suggestion] = [Suggestion.convert(suggestion) for suggestion in suggestions_objs]
+        raise HTTPException(
+            status_code=500, detail="Database schema error. Schema mismatch")
+    suggestions_return: List[Suggestion] = [Suggestion.convert(
+        suggestion) for suggestion in suggestions_objs]
 
     return {
         "suggestions": suggestions_return,
@@ -47,7 +52,8 @@ def getSuggestionByThreadId(thread_id: str) -> Suggestion:
     """
     issue = collection_suggestions.find_one({"thread_id": thread_id})
     if not issue:
-        raise HTTPException(status_code=404, detail=f"Suggestion with the thread id {thread_id} not found")
+        raise HTTPException(status_code=404, detail=f"Suggestion with the thread id {
+                            thread_id} not found")
     issue["id"] = str(issue["_id"])
     del issue["_id"]
     return Suggestion.convert(SuggestionInDB(**issue))

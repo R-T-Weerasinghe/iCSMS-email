@@ -68,7 +68,7 @@ async def identify_criticality(new_email_msg_array):
         email_acc_array = await get_reading_emails_array()
         email_acc_array = [email_acc['address'] for email_acc in email_acc_array]
         
-        if new_email_msg['recipient'] in email_acc_array:
+        if new_email_msg["type"]=="client":
         
             if(i%3==0):
                 os.environ["GOOGLE_API_KEY"] = google_api_key_4

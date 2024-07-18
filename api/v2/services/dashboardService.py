@@ -1,21 +1,22 @@
-from datetime import datetime, timedelta
-import pandas as pd
 from fastapi import HTTPException
+import pandas as pd
 from pydantic import ValidationError
-
 from typing import List
 from fastapi import HTTPException
 from api.v2.models.dashboardModel import BestPerformingEmailAccResponse, EmailAccEfficiencyResponse, GaugeChartResponse, InquiriesByEfficiencyEffectivenessResponse, IssueInquiryFreqByProdcutsResponse, IssueInquiryFreqByTypeResponse, IssuesByEfficiencyEffectivenessResponse, OngoingAndClosedStatsResponse, OverallyEfficiencyEffectivenessPecentagesResponse, OverdueIssuesResponse, SentimentsByTimeResponse, SentimentsByTopicResponse, SentimentsDistributionByTimeResponse, GetCurrentOverallSentimentProgress, StatCardSingleResponse, WordCloudSingleResponse
-from api.v2.dependencies.database import collection_notificationSendingChannels,collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
+#from api.v2.dependencies.database import collection_notificationSendingChannels,collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
+from api.email_filtering_and_info_generation.configurations.database import collection_notificationSendingChannels,collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
+
 from datetime import datetime, timedelta, timezone
 import random
 
 from api.email_filtering_and_info_generation.schemas import list_readingEmailAcc_serial
-
-from api.v2.dependencies.database import collection_issues, collection_inquiries
+from api.v2.dependencies.database import collection_email_msgs,collection_inquiries,collection_issues, collection_readingEmailAccounts, collection_configurations
+from api.v2.models.dashboardModel import BestPerformingEmailAccResponse, EmailAccEfficiencyResponse, GaugeChartResponse, InquiriesByEfficiencyEffectivenessResponse, IssueInquiryFreqByProdcutsResponse, IssueInquiryFreqByTypeResponse, IssuesByEfficiencyEffectivenessResponse, OngoingAndClosedStatsResponse, OverallyEfficiencyEffectivenessPecentagesResponse, OverdueIssuesResponse, SentimentsByTimeResponse, SentimentsByTopicResponse, SentimentsDistributionByTimeResponse, GetCurrentOverallSentimentProgress, StatCardSingleResponse, WordCloudSingleResponse
+from api.email_filtering_and_info_generation.configurations.database import collection_issues, collection_inquiries
 from api.v2.models.inquiriesModel import InquiryInDB
 from api.v2.models.issuesModel import IssueInDB
-from api.v2.services.utilityService import build_query, get_first_response_time, get_first_client_msg_time
+from api.v2.services.utilityService import build_query, get_first_response_time, get_first_client_msg_time, get_resolution_time
 
 async def getTimeData(intervalInDaysStart: int, intervalInDaysEnd:int):
     dateTimeStart = datetime.now() - timedelta(days=intervalInDaysStart)
@@ -68,7 +69,7 @@ async def getTimeData(intervalInDaysStart: int, intervalInDaysEnd:int):
     # Set the time as index
     df.set_index("time", inplace=True)
     # Resample data in 5-minute intervals and calculate the mean
-    resampled_df = df.resample("5T").mean().dropna()
+    resampled_df = df.resample("5min").mean().dropna()
     # Convert the resampled DataFrame back to lists
     resampled_times = resampled_df.index.strftime("%Y-%m-%dT%H:%M:%S").tolist()
     resampled_first_response_times = resampled_df["response_time"].tolist()
@@ -82,9 +83,12 @@ async def getTimeData(intervalInDaysStart: int, intervalInDaysEnd:int):
     
     
 async def get_current_overall_sentiments(intervalInDaysStart: int, intervalInDaysEnd:int):
- 
-    
    
+    """
+    get data for the overall sentiment percentages donut chart
+    
+    """
+     
     recipients = await get_all_reading_email_accounts()
     
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
@@ -94,7 +98,7 @@ async def get_current_overall_sentiments(intervalInDaysStart: int, intervalInDay
     n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
     
     # Query MongoDB for documents matching recipients
-    query = {"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}}
+    query = {"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "type":"client"}
     results = collection_email_msgs.find(query, {"_id": 0, "our_sentiment_score": 1})
     
     # Extract our_sentiment_score values
@@ -103,7 +107,7 @@ async def get_current_overall_sentiments(intervalInDaysStart: int, intervalInDay
  
     total_frequency= len(sentiment_scores)
     
-    print("TOTAL FREQUENCY--------",total_frequency )
+    print("TOTAL FREQUENCY-------->",total_frequency )
     
     if total_frequency != 0:
         positive_frequency= 0
@@ -124,9 +128,7 @@ async def get_current_overall_sentiments(intervalInDaysStart: int, intervalInDay
         positive_percentage = (positive_frequency/total_frequency)*100
         neutral_percentage = (neutral_frequency/total_frequency)*100
         negative_perecentage = (negative_frequency/total_frequency)*100
-        
-        print()
-        
+                
         result =  GetCurrentOverallSentimentProgress(positive_percentage= positive_percentage, 
                                                           neutral_percentage= neutral_percentage, 
                                                           negative_percentage= negative_perecentage)
@@ -140,8 +142,11 @@ async def get_current_overall_sentiments(intervalInDaysStart: int, intervalInDay
     
     
 async def get_data_for_topic_cloud(intervalInDaysStart: int, intervalInDaysEnd:int) :
+
+    """
+    get data about the most trending products for the trending products cloud
     
-    # change this so to get the topics list from the DB
+    """
     products = await getProductsList()
     
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
@@ -154,7 +159,7 @@ async def get_data_for_topic_cloud(intervalInDaysStart: int, intervalInDaysEnd:i
     products_frequencies = {product: 0 for product in products}
 
     # Query MongoDB to retrieve documents
-    cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}})
+    cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "type":"client"})
 
     # Iterate over each document
     for document in cursor:
@@ -176,7 +181,6 @@ async def get_data_for_topic_cloud(intervalInDaysStart: int, intervalInDaysEnd:i
 
 async def get_data_for_word_cloud(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
-    # change this so to get the topics list from the DB
     products = await getProductsList()
     
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
@@ -192,11 +196,10 @@ async def get_data_for_word_cloud(intervalInDaysStart: int, intervalInDaysEnd:in
         # Query MongoDB to retrieve documents
         prod_count = collection_email_msgs.count_documents({
                 "time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
-                "products": {"$in": [product]}
+                "products": {"$in": [product]},
+                "type":"client"
             })
         
-
-        print("n_days_ago_start", n_days_ago_start)
         print("product", product, "prod_count", prod_count, '\n')
         product_frequencies[product] = prod_count
     
@@ -204,13 +207,17 @@ async def get_data_for_word_cloud(intervalInDaysStart: int, intervalInDaysEnd:in
     
     # Convert the dictionary to a list of dictionaries with topic and frequency
     result = [WordCloudSingleResponse(topic= topic, frequency= frequency, color= generateRandomColor()) for topic, frequency in product_frequencies.items()]
-    print("wordcloud response!!!!!!!!!!!!!!!!!!!!!!!!!!", result)
+    print("wordcloud response--------> ", result)
     return result
     
 
 
 async def get_data_for_stat_cards(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
+    """
+    get stats for the stat cards about different emaila accounts
+    
+    """
     recepient_emails = await get_reading_emails_array()
     
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
@@ -223,7 +230,7 @@ async def get_data_for_stat_cards(intervalInDaysStart: int, intervalInDaysEnd:in
     result: List[StatCardSingleResponse] = []
     for recepient_email in recepient_emails:
         query = {"recipient": recepient_email["address"]}
-        cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "recipient": recepient_email["address"]})
+        cursor = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "recipient": recepient_email["address"], "type":"client"})
         
         if cursor:
             
@@ -249,12 +256,7 @@ async def get_data_for_stat_cards(intervalInDaysStart: int, intervalInDaysEnd:in
                                                     sentiment_score = None,
                                                     imgPath= imgPath))
             else:
-                
-                for document in cursor:
-                    print("IN LOOP of geeting sentiment score for each doc")
-                   
-                    print("document[our_sentiment_score]",document["our_sentiment_score"],"\n")
-                    
+                                       
                 sentiement_score = overall_sentiment_score_sum/total_emails
                 
                 print(recepient_email["nickname"], " : ", "overall sentiment sum", overall_sentiment_score_sum, "sentiement_score", sentiement_score)
@@ -286,7 +288,11 @@ async def get_data_for_stat_cards(intervalInDaysStart: int, intervalInDaysEnd:in
 
 
 async def get_data_for_sentiments_by_topic(intervalInDaysStart: int, intervalInDaysEnd:int) :
+
+    """
+    get data for the sentiments by products chart
     
+    """
     products = await getProductsList()
     
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
@@ -304,7 +310,7 @@ async def get_data_for_sentiments_by_topic(intervalInDaysStart: int, intervalInD
     for product in products:
  
         # Query MongoDB for emails with the current topic
-        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}})
+        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}, "type":"client"})
 
         # find the total no of emails per each topic
         totalNoOFEmails = 0
@@ -340,7 +346,11 @@ async def get_data_for_sentiments_by_topic(intervalInDaysStart: int, intervalInD
 
 
 async def get_data_for_sentiments_by_time(intervalInDaysStart: int, intervalInDaysEnd:int) :
+
+    """
+    get data for the sentiments by time, time series graph
     
+    """
     labels = []
     positive_values = []
     neutral_values = []    
@@ -378,7 +388,7 @@ async def get_data_for_sentiments_by_time(intervalInDaysStart: int, intervalInDa
 
         # Query to find emails that arrived in the checking day
         query = {"time": {"$gte": checking_day.replace(hour=0, minute=0, second=0, microsecond=0),
-                        "$lt": checking_day.replace(hour=23, minute=59, second=59, microsecond=999999)}}
+                        "$lt": checking_day.replace(hour=23, minute=59, second=59, microsecond=999999)}, "type":"client"}
 
         # Retrieve emails
         checkingday_emails = collection_email_msgs.find(query)
@@ -429,6 +439,11 @@ async def get_data_for_sentiments_by_time(intervalInDaysStart: int, intervalInDa
 
 async def get_data_for_sentiments_distribution_of_topics(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
+    """
+    get data for the avg positive, neutral and negative sentiment scores for each product. 
+    This is the for the sentiment distribution by products chart
+    
+    """
     products = await getProductsList()
     
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
@@ -457,7 +472,7 @@ async def get_data_for_sentiments_distribution_of_topics(intervalInDaysStart: in
         labels_freq.append(product)
         
         # Query MongoDB for emails with the current topic
-        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}}, {"_id": 0, "our_sentiment_score": 1})
+        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "type":"client", "products": {"$in": [product]}}, {"_id": 0, "our_sentiment_score": 1})
 
         
         if emails_with_product!= []:
@@ -521,8 +536,12 @@ async def get_data_for_sentiments_distribution_of_topics(intervalInDaysStart: in
 
 
 async def get_data_value_for_gauge_chart(intervalInDaysStart: int, intervalInDaysEnd:int) :
+    
+    """
+    get overall sentiment score for the gauge chart
+    
+    """
     # Calculate the date n days ago
-    print(intervalInDaysStart)
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
     n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -530,7 +549,7 @@ async def get_data_value_for_gauge_chart(intervalInDaysStart: int, intervalInDay
     n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
 
     # Query MongoDB collection for emails within the past n days for the given userId
-    emails = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}})
+    emails = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "type":"client"})
     
     
         
@@ -541,7 +560,6 @@ async def get_data_value_for_gauge_chart(intervalInDaysStart: int, intervalInDay
         no_of_emails += 1
         total_sentiment_score = total_sentiment_score + email["our_sentiment_score"]
     
-    print("total_sentiment_score", total_sentiment_score, "no_of_emails", no_of_emails)
     
     if no_of_emails>0:
         avg_sentiment_score = round(total_sentiment_score/no_of_emails,3)
@@ -559,6 +577,11 @@ async def get_data_value_for_gauge_chart(intervalInDaysStart: int, intervalInDay
 
 async def get_data_for_issue_and_inquiry_frequency_by_products(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
+    """
+    get the best product, worst product and the issues and inquiries count distribution among products
+    
+    """    
+
     products = await getProductsList()
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
     n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -601,7 +624,7 @@ async def get_data_for_issue_and_inquiry_frequency_by_products(intervalInDaysSta
         
         
         #-------------------finding the best and worst product by sentiment----------------------------
-        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}})
+        emails_with_product = collection_email_msgs.find({"time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end}, "products": {"$in": [product]}, "type":"client"})
 
         # find the total no of emails per each topic
         totalNoOFEmails = 0
@@ -659,12 +682,10 @@ async def get_data_for_issue_and_inquiry_frequency_by_products(intervalInDaysSta
 
 async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalInDaysStart: int, intervalInDaysEnd:int) :
     
-    # issue_types = [
-        # 'Order Issues', 'Billing and Payment Problems', 'Account Issues', 
-        # 'Product or Service Complaints', 'Technical Issues', 
-        # 'Warranty and Repair Issues', 'Subscription Problems', 
-        # 'Return and Exchange Problems', 'Public Relations Issues'
-    # ]
+    """
+    get issue and inquiries count distribution for each issue type and inquiry type
+    
+    """
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
     n_days_ago_end = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -682,7 +703,6 @@ async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalInDaysS
     
     n_days_ago_end = datetime.utcnow() - timedelta(days=intervalInDaysEnd)
     n_days_ago_end = n_days_ago_end.replace(hour=0, minute=0, second=0, microsecond=0)
-    print("intervalInDaysStart", intervalInDaysStart)
  
     issue_type_frequencies = []
     inquiry_type_frequencies = []
@@ -698,13 +718,7 @@ async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalInDaysS
   
         
         issue_type_frequencies.append(count_issues)
-    
-    # inquiry_types = [
-        # 'Product Information', 'Pricing and Discounts', 'Shipping and Delivery', 
-        # 'Warranty and Guarantees', 'Account Information', 
-        # 'Technical Support', 'Policies and Procedures', 
-        # 'Payment Methods', 'Employment Opportunities', 'Legal or Compliance'
-    # ]
+
     
     inquiry_types = await getInquiryTypes()
     
@@ -723,9 +737,7 @@ async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalInDaysS
             "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
             "inquiry_type": inquiry_type
         })
-        
-        print("inquiry type: ", inquiry_type, "  count: ", count_inquiries)
-        
+                
         inquiry_type_frequencies.append(count_inquiries)
     
     result = IssueInquiryFreqByTypeResponse(
@@ -738,6 +750,10 @@ async def get_data_for_frequency_by_issue_type_and_inquiry_types(intervalInDaysS
 
 async def get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalInDaysStart: int, intervalInDaysEnd:int) :     
     
+    """
+    get efficiency and the effectivity percentages of the closed issues 
+    
+    """
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
     n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -780,6 +796,10 @@ async def get_data_for_issue_frequency_by_efficiency_and_effectiveness(intervalI
     
 async def get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(intervalInDaysStart: int, intervalInDaysEnd:int) :     
     
+    """
+    get efficiency and the effectivity percentages of the closed inquiries 
+    
+    """
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
     n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -822,7 +842,11 @@ async def get_data_for_inquiry_frequency_by_efficiency_and_effectiveness(interva
     
     
 async def get_data_for_overall_efficiency_and_effectiveness_percentages(intervalInDaysStart: int, intervalInDaysEnd:int) :  
+
+    """
+    get efficiency and the effectivity percentages of closed issues and inquiries combined
     
+    """
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
     n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -904,7 +928,11 @@ async def get_data_for_overall_efficiency_and_effectiveness_percentages(interval
     return result  
     
 async def get_data_for_ongoing_and_closed_stats(intervalInDaysStart: int, intervalInDaysEnd:int) :
+
+    """
+    get data for ongoing and closed counts of issues and inquiries 
     
+    """
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
     n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -980,7 +1008,11 @@ async def get_data_for_ongoing_and_closed_stats(intervalInDaysStart: int, interv
     return result   
     
 async def get_data_for_best_performing_email_acc(intervalInDaysStart: int, intervalInDaysEnd:int) :
+
+    """
+    get data about best and worst performing emaila accounts
     
+    """
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
     n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -1022,7 +1054,6 @@ async def get_data_for_best_performing_email_acc(intervalInDaysStart: int, inter
         total_closed = (count_total_closed_inquiries+count_total_closed_issues) 
         first_part_score = (total_closed/(count_total_issues+count_total_inquiries))*40
         
-        #------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         #------------------------------------finding the second part score - out of 60 ----------------------------------------------------------------------------------------------
 
         max_denominator_score = total_closed *2
@@ -1057,7 +1088,11 @@ async def get_data_for_best_performing_email_acc(intervalInDaysStart: int, inter
     return result   
     
 async def get_data_for_efficiency_by_email_acc(intervalInDaysStart: int, intervalInDaysEnd:int) :  
-     
+
+    """
+    get data about efficiency distribtuion among emaila accounts
+    
+    """ 
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
     n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -1119,6 +1154,10 @@ async def get_data_for_efficiency_by_email_acc(intervalInDaysStart: int, interva
 
 async def get_data_for_overdue_issues(intervalInDaysStart: int, intervalInDaysEnd:int) :           
 
+    """
+    get the count of overdue issues
+    
+    """
     n_days_ago_start = datetime.utcnow() - timedelta(days=intervalInDaysStart)
     n_days_ago_start = n_days_ago_start.replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -1177,41 +1216,57 @@ async def get_all_reading_email_accounts():
 
 
 async def getProductsList():
+    """
+    get the prodcut list of the company
 
- result = collection_configurations.find_one({"id": 1})
- if result:
-    productsList = result.get("products",[])
-    return productsList
+    """
 
- else:
-    print("No document found with id 1")
-    return []
+    result = collection_configurations.find_one({"id": 1})
+    if result:
+        productsList = result.get("products",[])
+        return productsList
+
+    else:
+        print("No document found with id 1")
+        return []
 
 async def getIssueTypes():
- result = collection_configurations.find_one({"id": 3})
- if result:
-    issueTypeList = result.get("issue_types",[])
-    issueTypeList.append('other')
-    return issueTypeList
+    """
+    get the issue types list of the company
 
- else:
-    print("No document found with id 3")
-    return []
+    """
+    result = collection_configurations.find_one({"id": 3})
+    if result:
+        issueTypeList = result.get("issue_types",[])
+        issueTypeList.append('other')
+        return issueTypeList
+
+    else:
+        print("No document found with id 3")
+        return []
 
 async def getInquiryTypes():
- result = collection_configurations.find_one({"id": 3})
- if result:
-    inquiryTypeList = result.get("inquiry_types",[])
-    inquiryTypeList.append('other')
-    return inquiryTypeList
+    """
+    get the inquiry types list of the company
 
- else:
-    print("No document found with id 3")
-    return []
+    """
+    result = collection_configurations.find_one({"id": 3})
+    if result:
+        inquiryTypeList = result.get("inquiry_types",[])
+        inquiryTypeList.append('other')
+        return inquiryTypeList
+
+    else:
+        print("No document found with id 3")
+        return []
     
 
 def get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end, reading_email_acc, efficiency_category ):
     
+    """
+    get the total closed issue count for a specific email account
+
+    """
     count_total_closed_certain_eff_issues = collection_issues.count_documents({
         "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc,
@@ -1222,25 +1277,28 @@ def get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_day
     return count_total_closed_certain_eff_issues
 
 def get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end, reading_email_acc, efficiency_category ):
-    
+    """
+    get the total closed inquriy count for a specific email account
+
+    """
     count_total_closed_certain_eff_inquiry = collection_inquiries.count_documents({
         "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc,
         "status":"closed",
         "efficiency":efficiency_category
         })
-    
     return count_total_closed_certain_eff_inquiry
 
 
 # generate colors for the sentiments by topic bar chart
 def generateRandomColorForBarChart(score):
 
-        
+    """
+    get a random color for different sentiments for bar charts
+
+    """
     if score>=-0.3 and score<=0.3:
-        
         if score>=-0.15 and score<=0.15:
-        
             red = random.randint(200, 225)
             green = random.randint(200, 225)
             blue = random.randint(0, 150)
@@ -1248,9 +1306,6 @@ def generateRandomColorForBarChart(score):
             red = random.randint(225, 255)
             green = random.randint(225, 255)
             blue = random.randint(0, 150)  
-             
-
-        
     elif score>0.3:
         if score>0.6:
             red = random.randint(0, 255)
@@ -1260,7 +1315,6 @@ def generateRandomColorForBarChart(score):
             red = random.randint(0, 255)
             green = random.randint(200, 255)
             blue = random.randint(0, 255)
-        
     elif score<-0.3:
         if score<-0.6:
             red = random.randint(225, 255)
@@ -1270,25 +1324,144 @@ def generateRandomColorForBarChart(score):
             red = random.randint(200, 255)
             green = random.randint(0, 255)
             blue = random.randint(0, 255)        
-    
            
     color = f'rgba({red}, {green}, {blue}, 0.9)'  
     return color
 
 
-
 def generateRandomColor():
-    
     # generate random color 
     red = random.randint(0, 255)
     green = random.randint(0, 255)
     blue = random.randint(0, 255)
-    
     color = f'rgba({red}, {green}, {blue}, 0.9)' 
-    
     return color
 
 
 async def get_reading_emails_array():
+    """
+    get all reading email accounts
+
+    """
     email_acc_array = list_readingEmailAcc_serial(collection_readingEmailAccounts.find())
     return email_acc_array
+
+
+async def getFirstResponseTime(intervalInDaysStart: int, intervalInDaysEnd:int):
+    dateTimeStart = datetime.now() - timedelta(days=intervalInDaysStart)
+    dateTimeEnd = datetime.now() - timedelta(days=intervalInDaysEnd)
+
+    dateStart = dateTimeStart.replace(hour=0, minute=0, second=0, microsecond=0)
+    dateEnd = dateTimeEnd.replace(hour=0, minute=0, second=0, microsecond=0)
+    first_response_times = []
+    client_msg_times = []
+
+    # FRT for issues
+    query = build_query(0, 0, "issue", None, None, None, None, None, dateStart, dateEnd, None)
+    issues = list(collection_issues.find(query))
+    for issue in issues:
+        try:
+            issue_obj = IssueInDB(**issue)
+        except ValidationError:
+            raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+        emails = issue_obj.issue_convo_summary_arr
+        frt = get_first_response_time(emails)
+        client_msg_time = get_first_client_msg_time(emails)
+        if frt:
+            first_response_times.append(frt)
+            client_msg_times.append(client_msg_time)
+
+    # FRT for inquiries
+    query = build_query(0, 0, "inquiry", None, None, None, None, None, dateStart, dateEnd, None)
+    inquiries = list(collection_inquiries.find(query))
+    for inquiry in inquiries:
+        try:
+            inquiry_obj = InquiryInDB(**inquiry)
+        except ValidationError:
+            raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+        emails = inquiry_obj.inquiry_convo_summary_arr
+        frt = get_first_response_time(emails)
+        client_msg_time = get_first_client_msg_time(emails)
+        if frt:
+            first_response_times.append(frt)
+            client_msg_times.append(client_msg_time)
+
+    avg_frt = sum(first_response_times) / len(first_response_times) if first_response_times else 0
+
+    # Resampling
+    df = pd.DataFrame({
+        "time": pd.to_datetime(client_msg_times),
+        "response_time": first_response_times
+    })
+    # Set the time as index
+    df.set_index("time", inplace=True)
+    # Resample data in 5-minute intervals and calculate the mean
+    resampled_df = df.resample("5min").mean().dropna()
+    # Convert the resampled DataFrame back to lists
+    resampled_times = resampled_df.index.strftime("%Y-%m-%dT%H:%M:%S").tolist()
+    resampled_first_response_times = resampled_df["response_time"].tolist()
+    return {
+        "x": resampled_times,
+        "y": resampled_first_response_times,
+        "avg": avg_frt
+    }
+
+
+async def getResolutionTime(intervalInDaysStart: int, intervalInDaysEnd:int):
+    dateTimeStart = datetime.now() - timedelta(days=intervalInDaysStart)
+    dateTimeEnd = datetime.now() - timedelta(days=intervalInDaysEnd)
+
+    dateStart = dateTimeStart.replace(hour=0, minute=0, second=0, microsecond=0)
+    dateEnd = dateTimeEnd.replace(hour=0, minute=0, second=0, microsecond=0)
+    resolution_times = []
+    client_msg_times = []
+
+    # RT for issues
+    query = build_query(0, 0, "issue", None, None, None, None, None, dateStart, dateEnd, None)
+    issues = list(collection_issues.find(query))
+    for issue in issues:
+        try:
+            issue_obj = IssueInDB(**issue)
+        except ValidationError:
+            raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+        emails = issue_obj.issue_convo_summary_arr
+        rt = get_resolution_time(emails, issue_obj.status)
+        client_msg_time = get_first_client_msg_time(emails)
+        if rt:
+            resolution_times.append(rt)
+            client_msg_times.append(client_msg_time)
+    
+    # RT for inquiries
+    query = build_query(0, 0, "inquiry", None, None, None, None, None, dateStart, dateEnd, None)
+    inquiries = list(collection_inquiries.find(query))
+    for inquiry in inquiries:
+        try:
+            inquiry_obj = InquiryInDB(**inquiry)
+        except ValidationError:
+            raise HTTPException(status_code=500, detail="Database schema error. Schema mismatch")
+        emails = inquiry_obj.inquiry_convo_summary_arr
+        rt = get_resolution_time(emails, inquiry_obj.status)
+        client_msg_time = get_first_client_msg_time(emails)
+        if rt:
+            resolution_times.append(rt)
+            client_msg_times.append(client_msg_time)
+
+    avg_rt = sum(resolution_times) / len(resolution_times) if resolution_times else 0
+
+    # resampling
+    df = pd.DataFrame({
+        "time": pd.to_datetime(client_msg_times),
+        "resolution_time": resolution_times
+    })
+    # Set the time as index
+    df.set_index("time", inplace=True)
+    # Resample data in 5-minute intervals and calculate the mean
+    resampled_df = df.resample("5min").mean().dropna()
+    # Convert the resampled DataFrame back to lists
+    resampled_times = resampled_df.index.strftime("%Y-%m-%dT%H:%M:%S").tolist()
+    resampled_resolution_times = resampled_df["resolution_time"].tolist()
+    return {
+        "x": resampled_times,
+        "y": resampled_resolution_times,
+        "avg": avg_rt
+    }

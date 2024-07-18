@@ -124,6 +124,10 @@ class OverdueIssuesResponse(BaseModel):
     total_ongoing_issues: int  
     
 
+class TimeGraph(BaseModel):
+    x: List[str]
+    y: List[float]
+    avg: float
     
     
     
