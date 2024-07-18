@@ -1216,41 +1216,57 @@ async def get_all_reading_email_accounts():
 
 
 async def getProductsList():
+    """
+    get the prodcut list of the company
 
- result = collection_configurations.find_one({"id": 1})
- if result:
-    productsList = result.get("products",[])
-    return productsList
+    """
 
- else:
-    print("No document found with id 1")
-    return []
+    result = collection_configurations.find_one({"id": 1})
+    if result:
+        productsList = result.get("products",[])
+        return productsList
+
+    else:
+        print("No document found with id 1")
+        return []
 
 async def getIssueTypes():
- result = collection_configurations.find_one({"id": 3})
- if result:
-    issueTypeList = result.get("issue_types",[])
-    issueTypeList.append('other')
-    return issueTypeList
+    """
+    get the issue types list of the company
 
- else:
-    print("No document found with id 3")
-    return []
+    """
+    result = collection_configurations.find_one({"id": 3})
+    if result:
+        issueTypeList = result.get("issue_types",[])
+        issueTypeList.append('other')
+        return issueTypeList
+
+    else:
+        print("No document found with id 3")
+        return []
 
 async def getInquiryTypes():
- result = collection_configurations.find_one({"id": 3})
- if result:
-    inquiryTypeList = result.get("inquiry_types",[])
-    inquiryTypeList.append('other')
-    return inquiryTypeList
+    """
+    get the inquiry types list of the company
 
- else:
-    print("No document found with id 3")
-    return []
+    """
+    result = collection_configurations.find_one({"id": 3})
+    if result:
+        inquiryTypeList = result.get("inquiry_types",[])
+        inquiryTypeList.append('other')
+        return inquiryTypeList
+
+    else:
+        print("No document found with id 3")
+        return []
     
 
 def get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end, reading_email_acc, efficiency_category ):
     
+    """
+    get the total closed issue count for a specific email account
+
+    """
     count_total_closed_certain_eff_issues = collection_issues.count_documents({
         "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc,
@@ -1261,6 +1277,10 @@ def get_total_count_of_issues_for_certain_efficiency_and_certain_recepient(n_day
     return count_total_closed_certain_eff_issues
 
 def get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_days_ago_start, n_days_ago_end, reading_email_acc, efficiency_category ):
+    """
+    get the total closed inquriy count for a specific email account
+
+    """
     count_total_closed_certain_eff_inquiry = collection_inquiries.count_documents({
         "start_time": {"$gte": n_days_ago_start, "$lte":n_days_ago_end},
         "recepient_email": reading_email_acc,
@@ -1272,6 +1292,11 @@ def get_total_count_of_inquiry_for_certain_efficiency_and_certain_recepient(n_da
 
 # generate colors for the sentiments by topic bar chart
 def generateRandomColorForBarChart(score):
+
+    """
+    get a random color for different sentiments for bar charts
+
+    """
     if score>=-0.3 and score<=0.3:
         if score>=-0.15 and score<=0.15:
             red = random.randint(200, 225)
@@ -1314,6 +1339,10 @@ def generateRandomColor():
 
 
 async def get_reading_emails_array():
+    """
+    get all reading email accounts
+
+    """
     email_acc_array = list_readingEmailAcc_serial(collection_readingEmailAccounts.find())
     return email_acc_array
 
