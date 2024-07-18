@@ -1,13 +1,12 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from api.email_authorization.services import login_async
-from api.v2.models.settingsModel import Trigger,DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, EmailINtegrationPostResponseMessage, GetNewIntergratingEmailID, IntergratingEmailData, IssueInqTypeData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, PutNotiSendingChannelsRecordDB, SSShiftData, SendSystemConfigData, UserRoleResponse
-from typing import Dict, Any, List
+from api.v2.models.settingsModel import DeleteNotiSendingEmail, DeleteReadingEmail, EditingEmailData, EmailAcc, EmailAccWithNickName, EmailINtegrationPostResponseMessage, GetNewIntergratingEmailID, IntergratingEmailData, IssueInqTypeData, NotiSendingChannelsRecord, PostEditingEmail, PostNewIntegratingEmail, PostingCriticalityData, PostingNotiSendingChannelsRecord, PostingOverdueIssuesData, PutNotiSendingChannelsRecordDB, SSShiftData, SendSystemConfigData, UserRoleResponse
+from typing import  List
 #from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
-from api.email_filtering_and_info_generation.configurations.database import collection_trigers, collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
+from api.v2.dependencies.database import collection_notificationSendingChannels, collection_readingEmailAccounts, collection_configurations
 
 from api.email_filtering_and_info_generation.services import get_reading_emails_array
-from fastapi.responses import JSONResponse
 import shutil
 
 from api.v2.services import settingsService as services
@@ -197,7 +196,7 @@ async def receive_system_configurations_data(system_config_data: SendSystemConfi
             return {"message": "new config document inserted successfully"}
     
     except Exception as e:
-        # Log the exception (optional)
+        # Log the exception 
         print(f"An error occurred: {e}")
         
         # Raise an HTTP exception with a 400 status code and the error message
@@ -236,7 +235,7 @@ async def receive_issue_inq_type_data(iss_inq_type_data: IssueInqTypeData):
                 raise HTTPException(status_code=500, detail=str(e))
         
     except Exception as e:
-        # Log the exception (optional)
+        # Log the exception
         print(f"An error occurred: {e}")
         
         # Raise an HTTP exception with a 400 status code and the error message
@@ -354,7 +353,7 @@ async def get_current_ss_checking_data(user=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="An unexpected error occurred")
     
 
-# send current criticality checking emails of user 1
+# send current criticality checking email accounts of user 
 @router.get("/settings/get_current_criticality_checking_emails", response_model=List[EmailAcc])
 async def get_criticalty_checking_emails(user=Depends(get_current_user)):
     try:
@@ -369,7 +368,7 @@ async def get_criticalty_checking_emails(user=Depends(get_current_user)):
         # Raise an HTTP exception with a 500 status code and a generic error message
         raise HTTPException(status_code=500, detail="An unexpected error occurred while retrieving email accounts.")
 
-# send current criticality checking emails of user 
+# send current overdue issues checking email accounts of user 
 @router.get("/settings/get_current_overdue_issues_checking_emails", response_model=List[EmailAcc])
 async def get_current_overdue_issues_checking_emails(user=Depends(get_current_user)):
     try:
@@ -378,7 +377,7 @@ async def get_current_overdue_issues_checking_emails(user=Depends(get_current_us
         data = [EmailAcc(address=email) for email in addresses_string_array]
         return data
     except Exception as e:
-        # Log the exception (optional)
+        # Log the exception 
         print(f"An error occurred: {e}")
         
         # Raise an HTTP exception with a 500 status code and a generic error message
@@ -409,7 +408,7 @@ async def get_noti_channels_data(user=Depends(get_current_user)):
             
         return formatted_result
     except Exception as e:
-        # Log the exception (optional)
+        # Log the exception 
         print(f"An error occurred: {e}")
         
         # Raise an HTTP exception with a 500 status code and a generic error message
@@ -428,7 +427,7 @@ async def get_system_configuration_data():
         
         return formatted_result
     except Exception as e:
-        # Log the exception (optional)
+        # Log the exception 
         print(f"An error occurred: {e}")
         
         # Raise an HTTP exception with a 500 status code and a generic error message
@@ -448,7 +447,7 @@ async def get_issue_inq_type_data():
         print("sent issue n inquriy type data", formatted_result)
         return formatted_result
     except Exception as e:
-        # Log the exception (optional)
+        # Log the exception 
         print(f"An error occurred: {e}")
         
         # Raise an HTTP exception with a 500 status code and a generic error message
@@ -460,7 +459,7 @@ async def get_new_intergrating_email_id():
     try:
         return await services.get_new_intergrating_email_id()  
     except Exception as e:
-        # Log the exception (optional)
+        # Log the exception 
         print(f"An error occurred: {e}")
         
         # Raise an HTTP exception with a 500 status code and a generic error message
