@@ -109,7 +109,7 @@ async def check_sentiment_threshold_notification_condition():
                                     }
                         
                                         
-                        send_trig_event(trig_event)
+                        await send_trig_event(trig_event)
                         
                         print("TRIGGERED EVENT", trig_event)
                         
@@ -125,7 +125,7 @@ async def check_sentiment_threshold_notification_condition():
                                     "is_upper_bound_triggered":'yes', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
                                     }
                         
-                        send_trig_event(trig_event)
+                        await send_trig_event(trig_event)
                         
                         print("TRIGGERED EVENT", trig_event)
                         
@@ -168,12 +168,12 @@ async def check_sentiment_threshold_notification_condition():
                                         Note that the above score is based upon the emails that were received within the past 29 days."""
                                     
                                     if ss_trig_type == "lower" or ss_trig_type == "upper":
-                                        
+                                        message = "wow"
                                         mail_obj = MailObject(
                                             to=noti_sending_emails,
                                             subject=subject,
-                                            template_name="email_noti_template.html",
-                                            context={"message": message, "action_link": action_link}
+                                            template="email_noti_template.html",
+                                            context={"message": "wow", "action_link": "wow"}
                                         )
                 
                                         
@@ -186,7 +186,7 @@ async def check_sentiment_threshold_notification_condition():
                             if is_dashboard_notifications:
                                     
                                 if ss_trig_type == "lower":
-                                
+                                    timenow = datetime.utcnow()
                                     maindashboard_trig_event = Maindashboard_trig_event(
                                         triggered_trig_id = trigger['trigger_id'],
                                         user_name = trigger['user_name'],
@@ -194,13 +194,13 @@ async def check_sentiment_threshold_notification_condition():
                                         email_msg_or_thread_id = None,
                                         title= "High NEGATIVE Overall Sentiment Score Recorded",
                                         description = f"""the overall sentiment score of the {reading_email_address}, has gone below the negative sentiment
-                                    threshold of {trigger["ss_lower_bound"]}. At {time.time()} on {time.month} {time.day} of the sending of this email,
+                                    threshold of {trigger["ss_lower_bound"]}. At {timenow.time()} on {timenow.month} {timenow.day} of the sending of this email,
                                     the overall sentiment score of the whole customer care email system was  
                                     recorded to be {overall_sentiments_dict[reading_email_address]}."""          
                                     )
                                     
                                 elif ss_trig_type == "upper":
-                                    
+                                    timenow = datetime.utcnow()
                                     maindashboard_trig_event = Maindashboard_trig_event(
                                         triggered_trig_id = trigger['trigger_id'],
                                         user_name = trigger['user_name'],
@@ -208,7 +208,7 @@ async def check_sentiment_threshold_notification_condition():
                                         email_msg_or_thread_id = None,
                                         title= "High Positive Overall Sentiment Score Recorded",
                                         description = f"""the overall sentiment score of the {reading_email_address},, has gone above the positive sentiment
-                                    threshold of {trigger["ss_upper_bound"]}. At {time.time()} on {time.month} {time.day} of the sending of this email,
+                                    threshold of {trigger["ss_upper_bound"]}. At {timenow.time()} on {timenow.month} {timenow.day} of the sending of this email,
                                     the overall sentiment score of the whole customer care email system was  
                                     recorded to be {overall_sentiments_dict[reading_email_address]}."""
                                         
@@ -246,7 +246,7 @@ async def check_sentiment_threshold_notification_condition():
                                 }
                     
                                     
-                    send_trig_event(trig_event)
+                    await send_trig_event(trig_event)
                     
                     print("TRIGGER EVENT", trig_event)
                     
@@ -262,7 +262,7 @@ async def check_sentiment_threshold_notification_condition():
                                 "is_upper_bound_triggered":'yes', 'triggered_bound_value':overall_sentiments_dict[f"{reading_email_address}"],
                                 }
                     
-                    send_trig_event(trig_event)
+                    await send_trig_event(trig_event)
                     print("TRIGGER EVENT", trig_event)
                     
                     ss_trig_type = "upper"
@@ -305,12 +305,12 @@ async def check_sentiment_threshold_notification_condition():
                                     Note that the above score is based upon the emails that were received within the past 29 days."""
                                 
                                 if ss_trig_type == "lower" or ss_trig_type == "upper":
-                                    
+                                        message = "wow"
                                         mail_obj = MailObject(
                                             to=noti_sending_emails,
                                             subject=subject,
-                                            template_name="email_noti_template.html",
-                                            context={"message": message, "action_link": action_link}
+                                            template="email_noti_template.html",
+                                            context={"message": "wow", "action_link": "wow"}
                                         )
                 
                                         
@@ -324,7 +324,7 @@ async def check_sentiment_threshold_notification_condition():
                         if is_dashboard_notifications:
                             
                             if ss_trig_type == "lower":
-                            
+                                timenow = datetime.utcnow()
                                 maindashboard_trig_event = Maindashboard_trig_event(
                                     triggered_trig_id = trigger['trigger_id'],
                                     user_name = trigger['user_name'],
@@ -332,13 +332,13 @@ async def check_sentiment_threshold_notification_condition():
                                     email_msg_or_thread_id = None,
                                     title= "High NEGATIVE Overall Sentiment Score Recorded",
                                     description = f"""the overall avg sentiment score of all the email accounts , has gone below the negative sentiment
-                                threshold of {trigger["ss_lower_bound"]}. At {time.time()} on {time.month} {time.day} of the sending of this email,
+                                threshold of {trigger["ss_lower_bound"]}. At {timenow.time()} on {timenow.month} {timenow.day} of the sending of this email,
                                 the overall sentiment score of the whole customer care email system was  
                                 recorded to be {overall_sentiments_dict[reading_email_address]}."""          
                                 )
                                 
                             elif ss_trig_type == "upper":
-                                
+                                timenow = datetime.utcnow()
                                 maindashboard_trig_event = Maindashboard_trig_event(
                                     triggered_trig_id = trigger['trigger_id'],
                                     user_name = trigger['user_name'],
@@ -346,7 +346,7 @@ async def check_sentiment_threshold_notification_condition():
                                     email_msg_or_thread_id = None,
                                     title= "High Positive Overall Sentiment Score Recorded",
                                     description = f"""the overall avg sentiment score of all the email accounts , has gone above the positive sentiment
-                                threshold of {trigger["ss_upper_bound"]}. At {time.time()} on {time.month} {time.day} of the sending of this email,
+                                threshold of {trigger["ss_upper_bound"]}. At {timenow.time()} on {timenow.month} {timenow.day} of the sending of this email,
                                 the overall sentiment score of the whole customer care email system was  
                                 recorded to be {overall_sentiments_dict[reading_email_address]}."""
                                     
@@ -422,7 +422,7 @@ async def check_overdue_issues():
                                 mail_obj = MailObject(
                                     to=noti_sending_emails,
                                     subject=subject,
-                                    template_name="email_noti_template.html",
+                                    template="email_noti_template.html",
                                     context={"message": message, "action_link": action_link}
                                 )
         
@@ -435,7 +435,6 @@ async def check_overdue_issues():
                         is_dashboard_notifications = notific_channel.get("is_dashboard_notifications")
                         
                         if is_dashboard_notifications:
-                            
                             # perform the POST call to the main dashboard
                                 maindashboard_trig_event = Maindashboard_trig_event(
                                     triggered_trig_id = trigger['trigger_id'],
@@ -459,26 +458,28 @@ async def check_notifications_for_managers():
     while True:
             now = datetime.now()
 
-            # Check if it's time to run the condition check
-            if now.hour == 0 and now.minute == 0:
-                await check_sentiment_threshold_notification_condition()
-                await check_overdue_issues()
-                await identify_overdue_inquiries()
-                time.sleep(60)  # Sleep for 1 minute to avoid multiple checks within the same minute
+            # # Check if it's time to run the condition check
+            # if now.hour == 0 and now.minute == 0:
+            #     await check_sentiment_threshold_notification_condition()
+            #     await check_overdue_issues()
+            #     await identify_overdue_inquiries()
+            #     time.sleep(60)  # Sleep for 1 minute to avoid multiple checks within the same minute
 
-            elif now.hour == 12 and now.minute == 0:
-                await check_sentiment_threshold_notification_condition()
-                time.sleep(60)  # Sleep for 1 minute to avoid multiple checks within the same minute
+            # elif now.hour == 12 and now.minute == 0:
+            #     await check_sentiment_threshold_notification_condition()
+            #     time.sleep(60)  # Sleep for 1 minute to avoid multiple checks within the same minute
 
-            # Calculate time to sleep until the next check (either 00:00 or 12:00)
-            seconds_until_midnight = get_seconds_until(0)
-            seconds_until_noon = get_seconds_until(12)
+            # # Calculate time to sleep until the next check (either 00:00 or 12:00)
+            # seconds_until_midnight = get_seconds_until(0)
+            # seconds_until_noon = get_seconds_until(12)
 
-            # Sleep until the next scheduled check time
-            sleep_time = min(seconds_until_midnight, seconds_until_noon)
-            time.sleep(sleep_time)
+            # # Sleep until the next scheduled check time
+            # sleep_time = min(seconds_until_midnight, seconds_until_noon)
+            # time.sleep(sleep_time)
             
- 
+            await check_sentiment_threshold_notification_condition()
+            print("done checking all")
+            time.sleep(50)
         
         
         

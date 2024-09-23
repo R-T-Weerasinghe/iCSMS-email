@@ -202,7 +202,7 @@ async def send_email(mail_obj: MailObject):
         html_content = template.render(mail_obj.context)
 
         # Attach the HTML content
-        message.attach(MIMEText(html_content, "html"))
+        message.attach(MIMEText(html_content, "html", "utf-8"))
 
         with SMTP_SSL(Configurations.mail_host, Configurations.mail_port) as server:
             server.login(Configurations.mail_username, Configurations.mail_password)
