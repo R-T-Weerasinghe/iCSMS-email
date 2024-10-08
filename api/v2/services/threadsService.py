@@ -10,7 +10,7 @@ from api.v2.dependencies.database import collection_conversations
 
 nltk.download('punkt')
 
-HOT_THREADS_INTERVAL = 7
+HOT_THREADS_INTERVAL = 14
 HOT_THREADS_COUNT = 5
 SNIPPET_LENGTH = 2
 
