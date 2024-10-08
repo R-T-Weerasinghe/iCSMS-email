@@ -73,17 +73,21 @@ async def delete_trigger_events():
 
 
 async def slide_the_time_window():
+    
+    valid_period_for_email_msgs = 4 # given in weeks
+    valid_period_for_issues_n_inquiries = 4 # given in weeks
+    
     while True:
             now = datetime.now()
 
             # Check if it's time to run the condition check
             if now.hour == 0 and now.minute == 0:
-                await delete_email_msgs(4)
-                await delete_issues_and_inquiries(4)
+                await delete_email_msgs(valid_period_for_email_msgs)
+                await delete_issues_and_inquiries(valid_period_for_issues_n_inquiries)
                 await delete_trigger_events()
                 time.sleep(60)  # Sleep for 1 minute to avoid multiple checks within the same minute
 
-            # Calculate time to sleep until the next check (either 00:00 or 12:00)
+            # Calculate time to sleep until the next check 
             seconds_until_midnight = get_seconds_until(0)
 
             # Sleep until the next scheduled check time
