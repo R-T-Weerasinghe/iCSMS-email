@@ -66,7 +66,7 @@ iCSMS-email/
 
 ## Environment variables
 
-Create a `.env` file in the repository root (`/home/runner/work/iCSMS-email/iCSMS-email/.env`).
+Create a `.env` file in the repository root (`.env`).
 
 At minimum, define:
 
@@ -94,16 +94,18 @@ Some Gmail authorization flows expect credential files under:
 
 `api/email_filtering_and_info_generation/credentialsForEmails/credentialsForEmail{id}/client_secret.json`
 
+`{id}` is the numeric email-account slot used by the API flow (for example: `credentialsForEmail1`, `credentialsForEmail2`, ...).
+
 and may generate:
 
 `gmail_token.json` in the same folder.
 
 ## Local development
 
-1. Clone the repository:
+1. Clone the repository (or your fork):
 
    ```bash
-   git clone https://github.com/rtweera/iCSMS-email.git
+   git clone <repository-url>
    cd iCSMS-email
    ```
 
@@ -142,7 +144,7 @@ python -m pytest -q
 ```
 
 Note: tests import `main.py`, and some modules initialize Google AI clients during import.  
-If `GOOGLE_API_KEY` is not set, collection can fail before tests run.
+Set `GOOGLE_API_KEY` (and other required keys for your setup) in your environment before running `pytest`, or refactor tests to mock import-time external client initialization in isolated test environments.
 
 ## API docs
 
